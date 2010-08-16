@@ -1,0 +1,233 @@
+/* Dashboard
+ * vim:set noet:
+ * --
+ * Add to the default Django admin styles,
+ * to make the dashboard a little more useful */
+
+
+/* import the default django stylesheet first */
+@import url("/assets/admin/css/dashboard.css");
+
+/* import ie6 hacks and fixes */
+@import url("/assets/css/dashboard-ie6.css");
+
+
+/* make tables full width */
+.dashboard #content,
+.dashboard #content .events { width: auto; }
+
+
+/* make the sidebar considerably wider,
+   for the incomming/outgoing msg log */
+.dashboard #content-related {
+	margin-right: -39em;
+	width: 37em;
+	padding-left: 1em;
+	border-left: 1px solid #e3f8fa;
+}
+
+.dashboard .colMS {
+	margin-right: 40em !important; }
+
+
+/* ensure that the events and messages
+ * tables fill their container widths */
+.dashboard #content-related table,
+.dashboard .events table {
+	width: 100%;
+	color: #444;
+}
+
+/* shrink the text in the right column,
+ * because there's a whole lot of data */
+.dashboard #content-related td {
+	font-size: 11px; }
+
+/* hide the captions on the add and change
+ * links, to make more room for data */
+.dashboard #content a.changelink,
+.dashboard #content a.addlink {
+	padding-right: 0;
+	overflow: hidden;
+	width: 0;
+}
+
+
+
+
+/* ---- broadcast a message ---- */
+
+	.dashboard #content .send table {
+		border-right: none;
+		width: 100%;
+	}
+	
+	/* remove django admin style */
+	.dashboard #content .send fieldset {
+		padding: 0;
+		border: 0;
+	}
+	
+	/* tightly pack the form cell (we
+	 * don't know how big the widgets
+	 * will be, since they're native) */
+	.dashboard #content .send td.form {
+		width: 1%; }
+		
+		.dashboard #content .send td.form textarea {
+			width: 20em;
+			height: 5em;
+		}
+		
+		/* make the all+none buttons look like
+		 * regular django submit buttons */
+		.dashboard #content .send .sel-all,
+		.dashboard #content .send .sel-none {
+			display: block;
+			background: #eee url("/assets/admin/img/admin/nav-bg.gif") repeat-x 0 50%;
+			border-bottom: 1px solid #aaa;
+			cursor: pointer;
+			width: 50%;
+			float: left;
+			margin-bottom: 5px;
+			padding: 2px 0;
+			text-align: center;
+		}
+			
+			/* split them with a tiny gap */
+			.dashboard #content .send .sel-none {
+				border-left: 1px solid #fff;
+				margin-left: -1px;
+			}
+		
+		.dashboard #content .send div {
+			clear: both; }
+	
+	/* don't let the list of recipients
+	 * blow up the layout. there can be
+	 * any number of them */
+	.dashboard #content .send #send-recipients {
+		padding-right: 5px;
+		overflow-y: scroll;
+		height: 9em;
+	}
+
+
+
+
+/* ---- notifications ---- */
+
+	/* prevent long alerts from blowing up the layout */
+	.dashboard #content-related .notifications td.msg {
+		white-space: normal; }
+
+
+
+
+/* ---- Report filter form ---- */
+
+	.dashboard #content .filter-form select.fields { display: none; }
+	.dashboard #content .filter-form select.fields.visible { display: inline; }
+	
+	/* expand the "field" column as much as
+	 * possible, to wrap other columns tightly */
+	.dashboard .filter-form td.field {
+		width: 100%; }
+	
+	.dashboard .filter-form td.deletelink {
+		background-position: 50% 50%;
+		cursor: pointer;
+	}
+	
+	.dashboard .filter-form .filter-button {
+		float: right; }
+		
+	.dashboard .filter-form tfoot td {
+		text-align: center;
+		padding: 5px;
+	}
+		
+	.dashboard .filter-form tfoot td#report-add-filter {
+		text-align: center;
+		cursor: pointer;
+		padding: 4px;
+	}
+
+
+
+
+/* ---- transaction log ---- */
+
+	/* prevent really big messages from smashing
+	 * the layout (they're rare, so just hide
+	 * the extra content) */
+	.dashboard #content-related .transactions {
+		overflow-x: hidden; }
+	
+	/* remove padding from cell, since nested
+	 * table has plenty of it's own padding */
+	.dashboard #content-related td.messages {
+		padding: 0; }
+
+	/* make the nested table more succinct than most */
+	.dashboard #content-related td.messages table td {
+		white-space: normal;
+		border: none;
+		padding: 4px;
+	}
+
+	/* incoming/outgoing indicator [raq/laq]uo */
+	.dashboard #content-related td.messages table td.dir {
+		font-weight: bold;
+		width: 1%;
+	}
+
+	/* colorize cells to indicate direction */
+	.dashboard #content-related td.messages tr.in  td.dir { color: #f00; }
+	.dashboard #content-related td.messages tr.in         { background: #fff8ff; }
+	.dashboard #content-related td.messages tr.out td.dir { color: #0f0; }
+	.dashboard #content-related td.messages tr.out        { background: #f8ffff; }
+	
+	
+	.dashboard #content-related td.messages tr.in.virtual        { background: #fff; }
+	.dashboard #content-related td.messages tr.in.virtual td.dir { color: #faa; }
+	.dashboard #content-related td.messages tr.in.virtual td.msg { color: #ccc; }
+	
+	
+
+	/* for messages that aren't explicitly linked to a monitor,
+	 * include the destination number off to the right */
+	.dashboard #content-related td.messages table span.to {
+		float: right;
+		color: #aaa
+	}
+
+
+
+
+/* remove the default TH rule, which blows up our fancy
+ * events table, and replace it with a more specific rule */
+.dashboard .module table th       { width: auto; }
+.dashboard .module table tbody th { width: 100%; }
+
+/* shrink the monitor and phone
+ * columns as much as possible,
+ * to make space for the messages */
+.dashboard .module table td.monitor,
+.dashboard .module table td.phone {
+	width: 1%;
+}
+
+/* unimportant or unknown information */
+.dashboard .module table td.dull {
+	color: #888; }
+
+/* some column headers have
+ * extra help in tooltips */
+.dashboard table th.tip {
+	cursor: help; }
+
+/* space things out a bit more */
+.dashboard .events, .dashboard h1 {
+	margin-bottom: 10px; }
+

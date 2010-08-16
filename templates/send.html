@@ -1,104 +1,9 @@
-{% extends "layout-split-2.html" %}
-
-{% load includes %}
-{% block title %} RUTF summary {% endblock %}
-
-{% block page_stylesheets %}
-	<link rel="stylesheet" href="/static/rutfet/stylesheets/dashboard.css" />
-{% endblock page_stylesheets %}
-
-{% block javascripts %}
-<script type="text/javascript" src="/assets/js/mootools-1.2-core-yc.js"></script>
-
-{% endblock %}
-
-
-{% block left %}
-<div class="module">
-	<p>{% incl_reporting_period %}</p>
-	
-	<!-- Current period Entries -->
-      	        
-        <table>
-	<h3>Current Period Entries</h3><br>
-	<thead>
-		<tr>
-			<th scope="column">Location</th>
-			<th scope="column">Code</th>
-			<th scope="column" class="tip" title="Quantity Received">Recvd</th>
-			<th scope="column" class="tip" title="Consumption">Cons</th>
-			<th scope="column" class="tip" title="Current Stock Balance">Bal</th>
-		</tr>
-	</thead>
-	<tbody>
-	{% for entry in entries %}
-		<tr>
-			<th scope="row"><span title="{{ entry.supply_place.type }}">{{ entry.supply_place.place }}</span></td>
-			<td>{{ entry.supply_place.place.code }}</td>
-			<td>{{ entry.quantity }}</td>
-			<td>{{ entry.consumption }}</td>
-			<td>{{ entry.balance }}</td>
-		</tr>
-	{% endfor %}
-	</tbody>
-	</table>
-        
-</div>
-
-{% endblock %}
-
-
-{% block right %}
-<div class="module">
-
-
-	
-
-
-<!-- Notifications -->
-
-<div class="box" style="width:400px;float:left;">
-    <div style="padding:5px;"> 
-       				<p> </p>
-       	{% if notifications %}
-		<div class="notifications module">
-		<table>
-
-			<h3>Unresolved Notification</h3><br>
-			<thead>
-				<tr>
-					<th scope="column">Reporter</th>
-					<th scope="column">Alert Message</th>
-				</tr>
-			</thead>
-			<tbody>
-			{% for n in notifications %}
-				<tr>
-					<td class="monitor"><a href="/rutf_reporter/{{ n.rutf_reporter.pk }}/">{{ n.rutf_reporter }}</a></td>
-					<td class="msg"><a href="/notification/{{ n.pk }}/">{{ n.notice }}</a></td>
-				</tr>
-			{% endfor %}
-			</tbody>
-		</table>
-		</div>
-	{% endif %}
-        
-    </div>
-</div>
-
-
-
-<!-- Send Message-->
-
-<div class="box" style="width:400px;float:left;">
-    <div style="padding:5px;"> 
-       	
-       	<div class="send module">
+<div class="send module">
 	<form action="/send_sms/" method="POST">
 		<fieldset>
 						
 			<table>
-				<h3>Send a Message to RUTF Reporter(s)</h3><br>
+				<caption>Send a Message to RUTF Reporter(s)</caption>
 					
 				<tbody>
 					<tr>
@@ -229,7 +134,3 @@
 		</fieldset>
 	</form>
 </div>
-        
-    </div>
-</div>
-{% endblock %} 

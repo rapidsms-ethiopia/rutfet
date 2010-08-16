@@ -2,10 +2,12 @@
 # vim: noet
 
 from datetime import datetime, timedelta
-from RUTF.shared import *
+from rutfet.utils import *
 import fpformat
 
-from RUTF.models import *
+from rutfet.models import *
+from rutfet.scope import *
+
 from django import template
 register = template.Library()
 
@@ -13,10 +15,13 @@ register = template.Library()
 def incl_graph():
 	pass
 
+
 @register.inclusion_tag("grid.html")
 def incl_grid():
 	today = datetime.today().date()
-	return {"entries": Entry.objects.filter(time__gte=today)}
+##	entries = scope.entries()
+	start_date, end_date = current_reporting_period()
+        return {"entries": Entry.objects.filter(time__range = (start_date,end_date))}
 
 @register.inclusion_tag("map/entries.html")
 def incl_map():
@@ -42,13 +47,7 @@ def incl_messages(type):
 @register.inclusion_tag("send.html")
 def incl_send():
 	return {
-		"monitors": Monitor.objects.all()
-	}
-
-@register.inclusion_tag("transactions.html")
-def incl_transactions():
-	return {
-		"transactions": Transaction.objects.filter().order_by("-id")[:10]
+		"monitors": RUTFReporter.objects.all()
 	}
 
 
@@ -56,7 +55,7 @@ def incl_transactions():
 def incl_notifications():
 	return {
 		"caption": "Unresolved Notifications",
-		"notifications": Notification.objects.filter(resolved=False).order_by("-time")
+		"notifications": Alert.objects.filter(resolved=False).order_by("-time")
 	}
 
 @register.inclusion_tag("period.html")
@@ -64,8 +63,8 @@ def incl_reporting_period():
 	start, end = current_reporting_period()
 	return { "start": start, "end": end }
 
-@register.inclusion_tag("export-form.html", takes_context=True)
-def incl_export_form(context):
+@register.inclusion_tag("report_filter.html", takes_context=True)
+def incl_report_filter(context):
 	from django.utils.text import capfirst
 	from django.utils.html import escape
 	from django.contrib import admin
@@ -88,8 +87,8 @@ def incl_export_form(context):
 		# pass model metadata and fields array
 		# to the template to be rendered
 
-		#select models only related to RUTF
-		if model._meta.app_label == "RUTF":
+		#select models only related to rutfet
+		if model._meta.app_label == "rutfet":
                         models.append({
                                 "caption": capfirst(model._meta.verbose_name_plural),
                                 "name":    model.__name__.lower(),
@@ -97,6 +96,5 @@ def incl_export_form(context):
                                 "fields": fields
                         })
 
-        print models[0]
-	return {"models": models}
+        return {"models": models, "model_name":context["model_name"]}
 

@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+
+
+{% block title %} RUTF Reporter Detail {% endblock %}
+
+{% block page_stylesheets %}
+	<link rel="stylesheet" href="/static/rutfet/stylesheets/dashboard.css" />
+{% endblock page_stylesheets %}
+
+{% block javascripts %}
+<script type="text/javascript" src="/assets/js/mootools-1.2-core-yc.js"></script>
+
+{% endblock %}
+{% block content %}
+
+
+<h2>RUTF Reporter Detail </h2>
+
+
+	Name: {{first_name}}  <br>
+	Father Name: {{father_name}} <br>
+	Location: {{location}} <br>
+	Phone: {{phone}} <br>
+	email: {{email}}
+
+{% endblock %} 

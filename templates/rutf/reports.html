@@ -1,0 +1,85 @@
+{% extends "layout.html" %}
+
+{% load includes %}
+{% block title %} RUTF summary {% endblock %}
+
+{% block stylesheet %}/static/rutfet/css/dashboard.css{% endblock %}
+
+{% block page_stylesheets %}	
+
+
+
+{% endblock %}
+
+{% block javascripts %}
+<script type="text/javascript" src="/static/rutfet/js/mootools-1.2-core-yc.js"></script>
+
+{% endblock %}
+{% block content %}
+
+
+<h1>RUTF Entries</h1>
+
+	{% incl_report_filter %}
+	
+	
+<table width="100%"> 
+    <thead><tr>
+        {% for column in table.columns %}
+            <th>
+            {% if column.sortable %}<a href="?sort={{ column.name_toggled }}&model_name={{model_name}}">{% endif %}
+            {{ column }}
+            {% if column.sortable %}</a>{% endif %}
+            </th>
+        {% endfor %}
+    <tr></thead>
+    <tbody>
+    
+    
+        {% for row in table.rows %}
+            <tr>
+            	{% if model_name == "entry" %}
+		        <td>{{row.supply_place}}</td>
+			<td>{{row.quantity}}</td>
+		        <td>{{row.consumption}}</td>
+		        <td>{{row.balance}}</td>            
+		        <td><a href ='../rutf_reporter/{{row.rutf_reporter.id}}/'> {{row.rutf_reporter}} </a></td> 
+		{% endif %}   
+		
+		{% if model_name == "alert" %}
+			<td>{{row.notice }}</td>
+			<td>{{row.resolved }}</td>
+			<td>{{row.time }}</td>
+			<td><a href ='../rutf_reporter/{{row.rutf_reporter.id}}/'> {{row.rutf_reporter}} </a></td> 
+		{% endif %} 
+		
+		{% if model_name == "supply" %}
+			<td>{{row.name }}</td>
+			<td>{{row.code }}</td>
+			<td>{{row.unit }}</td>
+		{% endif %}
+		
+		{% if model_name == "rutfreporter" %}
+			<td>{{row.first_name }}</td>
+			<td>{{row.last_name }}</td>
+			<td>{{row.phone }}</td>
+			<td>{{row.location }}</td>
+		{% endif %}   
+		
+		{% if model_name == "healthpost" %}
+			<td>{{row.name }}</td>
+			<td>{{row.code}}</td>
+			<td>{{row.type }}</td>
+			<td>{{row.child_number}}</td>
+			<td>{{row.parent_name}}</td>
+			
+		{% endif %}   
+		    
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+	
+
+	
+{% endblock %} 

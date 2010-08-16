@@ -1,10 +1,12 @@
 
+
 from django.db import models
 from django.contrib.auth import models as auth_models
+from django.contrib.auth.models import User, UserManager
 from django.core.exceptions import ObjectDoesNotExist 
-##from utils import otp_code, woreda_code
+from django.utils.translation import ugettext as _
 from reporters.models import Reporter
-from locations.models import Location
+from locations.models import Location, LocationType
 
 
 class RUTFReporter(Reporter):
@@ -46,8 +48,8 @@ class RUTFReporter(Reporter):
 	#the place where the health officer is assigned
 	#returns the location name and its type (i.e woreda, zone, or region)
 	def _get_place_assigned(self):
-                place_name = "unknown"
-                place_type = "unknown"
+                place_name = self.location.name or "unknown"
+                place_type = self.location.type.name or "unknown"
                 return "%s %s" % (place_name, place_type)
         
         place_assigned = property(_get_place_assigned)
@@ -57,6 +59,7 @@ class RUTFReporter(Reporter):
 
 class Supply(models.Model):
         UNIT_CHOICES = (
+                ('CTN', 'Cartons'),
                 ('PL', 'pallets'),
                 ('TM', 'Tons (metric)'),
                 ('KG', 'Kilograms'),
@@ -85,39 +88,64 @@ class Supply(models.Model):
 	
 	def guess(self):
 		return [self.name, self.code]
+
+
 	
-	def _get_number_of_reports(self):
-		return len(Report.objects.filter(supply=self.id))
-
-	number_of_reports = property(_get_number_of_reports)
-
-
-class Location(Location, models.Model):
+class HealthPost(Location, models.Model):
     
-        def save(self):
-		# if this Woreda or OTP_site does not already
-		# have a code, assign a new one
-
-		# For woreda
-		if self.type.name.lower() == "woreda":
-                    if(self.code == ""):
-                            c = woreda_code()
-                            self.code = c
-                # For otp_site            
-                if self.type.name.lower() == "otp_site":
-                    if(self.code == ""):
-                            c = otp_code()
-                            self.code = c
-		
-		# invoke parent to save data
-		models.Model.save(self)
-
-	class Meta:
-            ordering = ["name"]      #you can include "Region" for Zone location type
+       	class Meta:
+            ordering = ["name"]      
 
         def __unicode__(self):
-		#return "%s (%s)" % (self.name, self.code)
-		return self.name
+		return u'%s %s' % (self.name, self.type.name)
+
+
+	@classmethod
+	def by_location(cls, location):
+                try:
+                        return cls.objects.get(location_ptr = location)
+                except cls.DoesNotExist:
+                        return None
+
+
+        @classmethod
+        def list_by_location(cls, location, type=None):
+                if location == None:
+                        health_posts = HealthPost.objects.all()
+                else:
+                        health_posts = []
+                        for loc in location.descendants(include_self = True):
+                                health_posts.append(cls.by_location(loc))
+                        health_posts = filter(lambda hp: hp != None, health_posts)
+                if type != None:
+                        health_posts = filter(lambda hp: hp.type == type, health_posts)
+                return health_posts
+
+        @property
+        def woreda(self):
+                list = filter(lambda hp: hp.type.name.lower == "woreda", self.ancestors())
+                
+                if len(list) == 0:
+                        return None
+                else:
+                        return list[0]
+
+        def zone(self):
+                list = filter(lambda hp: hp.type.name.lower == "zone", self.ancestors())
+                
+                if len(list) == 0:
+                        return None
+                else:
+                        return list[0]
+
+        def region(self):
+                list = filter(lambda hp: hp.type.name.lower == "region", self.ancestors())
+                
+                if len(list) == 0:
+                        return None
+                else:
+                        return list[0]
+                        
 
         def _get_number_of_child_locations(self):
             if self.type.name.lower() != "otp_site":
@@ -132,49 +160,41 @@ class Location(Location, models.Model):
             if self.type.name.lower() != "region":
                 return self.parent.name
 
+        def _get_location_type(self):
+                return self.type.name
+
         number_of_child_location = property(_get_number_of_child_locations)
 
         parent_location = property(_get_parent_location)
 
         parent_location_name = property (_get_parent_location_name)
 
+        location_type = property(_get_location_type)
+
 
 class SupplyPlace(models.Model):
 	supply = models.ForeignKey(Supply)
-	location = models.ForeignKey(Location, verbose_name="OTP", blank=True, null=True, help_text="Name of OTP")
-	#woreda = models.ForeignKey(Area, verbose_name="Woreda", blank=True, null=True, help_text="Name of Woreda")
-	#zone = models.ForeignKey(Area, verbose_name="Woreda", blank=True, null=True, help_text="Name of Woreda")
-	quantity = models.PositiveIntegerField(blank=True, null=True, help_text="Balance at OTP")
+	location = models.ForeignKey(HealthPost, verbose_name="Health Post", blank=True, null=True, help_text="Name of Location")
+	quantity = models.PositiveIntegerField(blank=True, null=True, help_text="Balance at Location")
 	
 	def __unicode__(self):
 		return "%s at %s (%s)" %\
 		(self.supply.name, self.place, self.type)
 
 	class Meta:
-		verbose_name_plural="Supplies per OTP or Woreda"
+		verbose_name_plural="Supplies per Location"
 	
 	def _get_place(self):
 		if self.location: return self.location
-##		elif self.woreda:   return self.area
-##		elif self.zone: return self.zone
-		else:             return "Unknown"
+		
 	place = property(_get_place)
 	
 	def _get_type(self):
-		if self.location: return "OTP"
-##		elif self.area:   return "Woreda"
-##		elif self.zone: return self.zone
-		else:             return "Unknown"
+		if self.location: return self.location.type.name
+		
 	type = property(_get_type)
 		
-	def _get_area(self):
-		if self.location: return self.location.area
-##		elif self.area:   return self.area
-##		elif self.zone: return self.zone
-		else:             return "Unknown"
-	woreda = property(_get_area)
-
-
+	
 class Alert(models.Model):
 	rutf_reporter = models.ForeignKey(RUTFReporter)
 	time = models.DateTimeField(auto_now_add=True)
@@ -183,39 +203,30 @@ class Alert(models.Model):
 	
 	def __unicode__(self):
 		return "%s by %s" %\
-		(self.time.strftime("%d/%m/%y"), self.reporter)
+		(self.time.strftime("%d/%m/%y"), self.rutf_reporter)
 
 
-##class Report(models.Model):
-##	supply = models.ForeignKey(Supply)
-##	begin_date = models.DateField()
-##	end_date = models.DateField()
-##	supply_place = models.ForeignKey(SupplyPlace)
-##
-##	def __unicode__(self):
-##		return "%s report" % self.supply.name
-##	
-##	def _get_latest_entry(self):
-##		try:
-##			e = Entry.objects.order_by('-time')[0]
-##		except:
-##			e = "No Entries"
-##		return e
-##	
-##	def _get_number_of_entries(self):
-##		return len(Entry.objects.filter(time__gte=self.begin_date).exclude(time__gte=self.end_date))
-##
-##	number_of_entries = property(_get_number_of_entries)
-##	latest_entry = property(_get_latest_entry)
-	
+class ReportPeriod(models.Model):
+        start_date = models.DateTimeField()
+        end_date = models.DateTimeField()
+
+        class Meta:
+                unique_together = ("start_date", "end_date")
+                get_latest_by = "end_date"
+                ordering = ["-end_date"]
+
+        def __unicode__(self):
+                return "%s to %s" % (self.start_date,self.end_date)
+
 
 class Entry(models.Model):
 	rutf_reporter = models.ForeignKey(RUTFReporter, help_text="Health Extension Worker / Health officer")
-	supply_place = models.ForeignKey(SupplyPlace, verbose_name="Place", help_text="The OTP or Woreda which this report was sent from")
+	supply_place = models.ForeignKey(SupplyPlace, verbose_name="Place", help_text="The Health post/Woreda/Zone which this report was sent from")
 	quantity = models.PositiveIntegerField("Received Quantity", null=True)
 	consumption = models.PositiveIntegerField("Consumption", null=True)
 	balance = models.PositiveIntegerField("Current Stock Balance", null=True)
-        entry_time = models.DateTimeField(auto_now_add=True)
+        time = models.DateTimeField(auto_now_add=True)
+        report_period = models.ForeignKey(ReportPeriod, verbose_name="Period", help_text="The period in which the data is reported")
         
 	def __unicode__(self):
 		return "%s on %s" %\
@@ -224,5 +235,67 @@ class Entry(models.Model):
 	class Meta:
 		verbose_name_plural="Entries"
 
+
+	def _get_receipt(self):
+                return _(u"%(health_post)sW%(week)s/%(reportid)s") % \
+                             {'health_post': self.supply_place.location.id, 'week': self.report_period.id,
+                              'reportid': self.id}
+
+                                 
+        receipt = property(_get_receipt)
+
+
+class WebUser(User):
+    ''' Extra fields for web users '''
+
+    class Meta:
+        pass
+
+    def __unicode__(self):
+        return unicode(self.user_ptr)
+
+    # Use UserManager to get the create_user method, etc.
+    objects = UserManager()
+
+    location = models.ForeignKey(Location, blank=True, null=True)
+
+    def health_posts(self):
+
+        """
+        Return the health posts within the location of the WebUser
+        """
+        if self.location == None:
+            return HealthPost.objects.all()
+        else:
+            return HealthPost.list_by_location(self.location)
+
+    def scope_string(self):
+        if self.location == None:
+            return 'All'
+        else:
+            return self.location.name
+
+    def rutf_reporters(self):
+
+        """
+        Return the rutf reporters within
+        the health posts of the related reporter
+        """
+
+        health_posts = self.health_posts()
+        rutf_reporters = []
+        for rutf_reporter in RUTFReporter.objects.filter(role__code='hew'):
+            if HealthPost.by_location(rutf_reporter.location) in health_posts:
+                rutf_reporters.append(rutf_reporter)
+        return rutf_reporters
+
+    @classmethod
+    def by_user(cls, user):
+        try:
+            return cls.objects.get(user_ptr=user)
+        except cls.DoesNotExist:
+            new_user = cls(user_ptr=user)
+            new_user.save_base(raw=True)
+            return new_user
 
 

@@ -1,0 +1,24 @@
+<table>
+	<caption>Current Period Entries</caption>
+	<thead>
+		<tr>
+			<th scope="column">OTP/Woreda</th>
+			<th scope="column">Code</th>
+			<th scope="column" class="tip" title="Quantity Received">Recvd</th>
+			<th scope="column" class="tip" title="Consumption">Cons</th>
+			<th scope="column" class="tip" title="Current Stock Balance">Bal</th>
+		</tr>
+	</thead>
+	<tbody>
+	{% for entry in entries %}
+		<tr>
+			<th scope="row"><span title="{{ entry.supply_place.type }}">{{ entry.supply_place.place }}</span></td>
+			<td>{{ entry.supply_place.place.code }}</td>
+			<td>{{ entry.quantity }}</td>
+			<td>{{ entry.consumption }}</td>
+			<td>{{ entry.balance }}</td>
+		</tr>
+	{% endfor %}
+	</tbody>
+</table>
+
