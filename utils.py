@@ -43,35 +43,7 @@ def get_or_generate_reporting_period():
         else:
                 return period[0]
                 
-
-
-##def nested_fields(model, max_depth=2):
-##	def iterate(model, nest=None):
-##		fields = []
-##		
-##		# iterate all of the fields in this model, and recurse
-##		# each foreign key to include fields from nested models
-##		for field in model._meta.fields:
-##			if nest is None: my_nest = [field]
-##			else: my_nest = nest + [field]
-##			
-##			# is this a foreign key? (also abort if depth is too deep)
-##			if (hasattr(field, "rel")) and (field.rel is not None) and (len(my_nest) <= max_depth):
-##				fields.extend(iterate(field.rel.to, my_nest))
-##			
-##			# add the field object as a tuple, including the
-##			# caption (containing prefixes) and the class itself
-##			else:
-##				filter = "__".join([f.name for f in my_nest])
-##				label = "/".join([capfirst(translation.ungettext(f.verbose_name, "", 1)) for f in my_nest])
-##				fields.append((filter, label, field))
-##		
-##		return fields
-##
-##	# start processing at the top
-##	return iterate(model)
-
-        
+       
 
 def nested_fields(model, max_depth=2):
         
