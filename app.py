@@ -18,6 +18,13 @@ class App (AppBase):
     # non-standard regex chunks
     ALIAS = '([a-z\.]+)'
 
+    # Supply code list for Reporting
+    supply_code_list = []
+    for supply_code in Supply.objects.values_list("code"):
+        supply_code_list.append(supply_code[0])
+
+    supply_code_str = "|".join(supply_code_list)
+
     
     def __get(self, model, **kwargs):
         try:
@@ -177,9 +184,12 @@ class App (AppBase):
 
         try:
             # attempt to find rutf_reporter's 
-            # entry with this code
+            # entry with this code in the current period
+
+            start_date, end_date = current_reporting_period()
             entry = Entry.objects.filter(
                     rutf_reporter=rutf_reporter,\
+                    time__range = (start_date,end_date),\
                     supply_place__location__code=code)\
                     .order_by('-time')[0]
 
@@ -188,19 +198,7 @@ class App (AppBase):
             message.respond(STR["cancel_code_ok"] % (code))
 
         except (ObjectDoesNotExist, IndexError):
-            try:
-                # try again for woreda code
-                entry = Entry.objects.filter(
-                        rutf_reporter=rutf_reporter,\
-                        supply_place__area__code=code)\
-                        .order_by('-time')[0]
-
-                # delete it and notify
-                entry.delete()
-                message.respond(STR["cancel_code_ok"] % (code))
-
-            except (ObjectDoesNotExist, IndexError):
-                message.respond(STR["cancel_none"])
+            message.respond(STR["cancel_none"])
 
     @kw.blank()
     def cancel(self, message):
@@ -209,9 +207,10 @@ class App (AppBase):
         
         try:
             # attempt to find the rutf_reporter's
-            # most recent entry TODAY
+            # recent entry in the period
+            start_date, end_date = current_reporting_period()
             latest = Entry.objects.filter(
-                    time__gt=date.today(),
+                    time__range = (start_date,end_date),
                     rutf_reporter=rutf_reporter)\
                     .order_by('-time')[0]
             latest_desc = latest.supply_place	
@@ -235,7 +234,9 @@ class App (AppBase):
     def supplies(self, message):
         caller = message.connection.identity
         rutf_reporter = self.__identify(message,"requesting supplies")
-        message.respond(["%s: %s" % (s.code, s.name)\
+
+        if rutf_reporter is not None:
+            message.respond(["%s: %s" % (s.code, s.name)\
             for s in Supply.objects.all()])
     
     @kw.invalid()
@@ -261,6 +262,10 @@ class App (AppBase):
     @kw("alert")
     def help_report(self, message):
         message.respond(STR["help_alert"])
+
+    @kw("cancel", "cancle")
+    def help_report(self, message):
+        message.respond(STR["help_cancel"])
     
     @kw.invalid()
     def help_help(self, message, *msg):
@@ -294,13 +299,16 @@ class App (AppBase):
 ##        message.respond(STR["conv_greet"])
 ##        self.handled = True
 
-
+    
+    
 
     # <SUPPLY> <PLACE> <QUANTITY> <CONSUMPTION> <BALANCE> --
     kw.prefix = ""
              
-    @kw("[\"'\s]*(letters)[,\.\s]*(\w+)(?:[,\.\s]*(\d+))?(?:[,\.\s]*(\d+))?(?:[,\.\s]*(\d+))?[\.,\"'\s]*")
-    def report(self, message, sup_code, place_code, qty="", con="", bal=""):
+##    @kw("[\"'\s]*(letters)[,\.\s]*(\w+)(?:[,\.\s]*(\d+))?(?:[,\.\s]*(\d+))?(?:[,\.\s]*(\d+))?[\.,\"'\s]*")
+
+    @kw("[\"'\s]*(" + supply_code_str + ")[,\.\s]*(\w+)(?:[,\.\s]*(\d+))?(?:[,\.\s]*(\d+))?(?:[,\.\s]*(\d+))?[\.,\"'\s]*")
+    def report(self, message, supply_code, place_code, qty="", con="", bal=""):
         
         # ensure that the caller is known
         caller = message.connection.identity
@@ -308,12 +316,20 @@ class App (AppBase):
         
         
         # validate + fetch the supply
-        scu = sup_code.upper()
-        sup = self.__get(Supply, code=scu)
+        sup_code = supply_code.upper()
+        supply = self.__get(Supply, code=sup_code)
         
-        if sup is None:
+        if supply is None:
             message.respond(STR["unknown"]\
-            % ("supply code", scu))
+            % ("supply code", sup_code))
+
+        plc_code = place_code.upper()
+        # the "place" can be Health post, woreda, or zone
+        place = self.__get(HealthPost, code=plc_code)
+
+        if place is None:
+            message.respond(STR["unknown"]\
+            % ("place code", plc_code))
         
         
         # init variables to avoid
@@ -321,20 +337,12 @@ class App (AppBase):
         health_post = None
         woreda = None
         zone = None
-        pcu = place_code.upper()
         
-        
-        # the "place" can be Health post, woreda, or zone
-        loc = self.__get(HealthPost, code=pcu)
-        if loc is None:
-               message.respond(STR["unknown"]\
-                % ("Health Post, Woreda, or Zone code", pcu))
-        
-        
+                
         # fetch the supplylocation object, to update the current stock
         # levels. if it doesn't already exist, just create it, because
         # the administrators probably won't want to add them all...
-        sp, created = SupplyPlace.objects.get_or_create(supply=sup, location=loc)
+        sp, created = SupplyPlace.objects.get_or_create(supply=supply, location=place)
         
         # create the entry object, 
         # unless its a duplicate report in the period
@@ -354,12 +362,13 @@ class App (AppBase):
 
             if entry is not None:
                 # update the entry
+                # or Delete the old one and insert the new report
                 entry.quantity = qty
                 entry.consumption = con
                 entry.balance = bal
                 entry.save()
 
-        # If the duplicate entry doesn't exist
+        # If the duplicate entry doesn't exist in the period
         except (ObjectDoesNotExist, IndexError):
 
                                   
@@ -383,8 +392,7 @@ class App (AppBase):
                 "bal=%s" % (bal or "??")]
         
         # notify the reporter of their new entry
-        if loc is not None:
-            # Get the reports ID number
+        if place is not None:
             last_report = Entry.objects.filter(
                     rutf_reporter=rutf_reporter,
                     supply_place=sp,
@@ -393,14 +401,13 @@ class App (AppBase):
                     balance=bal)[0]
             
 
-            # Generat receipt
+            # Generate receipt
             receipt = last_report.receipt
             
             message.respond(
-                    "Received %s report for %s %s by %s: %s.If this is not correct, reply with CANCEL %s. Ther Receipt Number = %s" %\
-                    (sup.name, sp.type, sp.place, rutf_reporter, ", ".join(info), loc,receipt))
+                    "Received %s report for %s %s by %s: %s.If this is not correct, reply with CANCEL %s. Receipt Number = %s" %\
+                    (supply.name, sp.type, sp.place, rutf_reporter, ", ".join(info), place.code ,receipt))
         
-
         
     @kw.invalid()
     def help_report(self, message, *msg):
