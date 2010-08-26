@@ -8,14 +8,27 @@
 {% endblock page_stylesheets %}
 
 {% block javascripts %}
-<script type="text/javascript" src="/assets/js/mootools-1.2-core-yc.js"></script>
+<script type="text/javascript" src="/static/js/jquery.js"></script>
 
 {% endblock %}
 
 
 {% block left %}
 <div class="module">
-	<p>{% incl_reporting_period %}</p>
+	<p>
+		Current reporting period is:<br>
+		<strong>
+		<span class="start">{{ start|date:"D dS M" }}</span>
+		to <span class="to">{{ end|date:"D dS M" }}</span>
+		</strong>
+
+	</p>
+	
+	<p>
+		<a href="#"><strong>{{ total_locations }}</strong> locations </a> are registered.<br/>
+        	<a href="#"><strong>{{ total_reporters }}</strong> reporters </a> are registered<br/>
+        	<a href="#"><strong>{{ total_currentperiod_entries }}</strong> report{{ summary.up2date|pluralize }}</a> ha{{ summary.up2date|pluralize:"s,ve" }} been reported in the current period
+	</p>
 	
 	<!-- Current period Entries -->
       	        
@@ -111,17 +124,17 @@
 						</td>
 						<td>
 							<div class="recipients" id="send-recipients">
-								{% for m in monitors %}
+								{% for reporter in reporters %}
 								<div>
-									<input type="checkbox" value="{{ m.pk }}" id="fm-monitor-{{ m.pk }}" name="monitor-{{ m.pk }}" />
-									<label for="fm-monitor-{{ m.pk }}">{{ m }}</label>
+									<input type="checkbox" value="{{ reporter.pk }}" id="fm-monitor-{{ reporter.pk }}" name="monitor-{{ reporter.pk }}" />
+									<label for="fm-monitor-{{ reporter.pk }}">{{ reporter }}</label>
 								</div>
 								{% endfor %}
 							</div>
 							
 							<script type="text/javascript">
 								(function() {
-									/* set the 'checked' status of all monitors
+									/* set the 'checked' status of all reporters
 									 * at once, because there are a lot of them */
 									var select_all = function (state) {
 										$$("#send-recipients input").each (function(el) {
@@ -137,7 +150,7 @@
 									new Element ("span", {
 										"html": "Select All",
 										"class": "sel-all",
-										"title": "Select all monitors",
+										"title": "Select all reporters",
 										"events": {
 											"click": function (ev) {
 												select_all (true);
@@ -149,7 +162,7 @@
 									new Element ("span", {
 										"html": "Select None",
 										"class": "sel-none",
-										"title": "Select no monitors",
+										"title": "Select no reporters",
 										"events": {
 											"click": function (ev) {
 												select_all (false);
@@ -163,7 +176,7 @@
 									 * clicked links can behave normally */
 									var last_link = null;
 									
-									/* watch all clicks for clicks on monitors */
+									/* watch all clicks for clicks on reporters */
 									$(document.body).addEvent ("click", function(ev) {
 										var url = "/inventory/monitor/";
 										var el = $(ev.target);
