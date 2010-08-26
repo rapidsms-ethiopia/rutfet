@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vim: noet
 
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
 from datetime import datetime, timedelta
 import fpformat
 import os
@@ -23,6 +23,7 @@ from utils import *
 
 from scope import *
 
+from django.utils.datastructures import SortedDict
 
 
 def refresh_graphs():
@@ -240,108 +241,91 @@ def reports(request, scope):
         the user can also filter reports'''
         if request.method == "POST":
                 filter_parameters = request.POST
+                print "---------------------------------------------------"
+                for i in filter_parameters:
+                        print "%s = %s" % (i, filter_parameters.get(i))
                 model_app_name = filter_parameters['model']
                 app_label,model_name = model_app_name.split("-")
-                base_model = models.get_model(app_label,model_name)
+                #base_model = models.get_model(app_label,model_name)
               
-                base_dataset = base_model.objects.all()
-                if model_name == "entry":
-                        all = []
-                        rutf_entries = scope.entries()
-                        for rutf_entry in rutf_entries:
-                                entry = {}
-                                entry['supply_place'] = rutf_entry.supply_place
-                                entry['quantity'] = rutf_entry.quantity
-                                entry['consumption'] = rutf_entry.consumption
-                                entry['balance'] = rutf_entry.balance
-                                entry['rutf_reporter'] = rutf_entry.rutf_reporter
-                                all.append(entry)
-                        table = EntryTable(all, order_by=request.GET.get('sort'))
-                elif model_name =="alert":
-                        all = []
-                        rutf_alerts = scope.alerts()
-                        for rutf_alert in rutf_alerts:
-                                alert = {}
-                                alert['notice'] = rutf_alert.notice
-                                alert['resolved'] = rutf_alert.resolved
-                                alert['time'] = rutf_alert.time
-                                alert['rutf_reporter'] = rutf_alert.rutf_reporter
-                                all.append(alert)
-                        table = AlertTable(all, order_by=request.GET.get('sort'))
-                elif model_name =="supply":
-                        all = []
-                        for rutf_supply in base_dataset:
-                                supply = {}
-                                supply['name'] = rutf_supply.name
-                                supply['code'] = rutf_supply.code
-                                supply['unit'] = rutf_supply.unit
-                                all.append(supply)
-                        table = SupplyTable(all, order_by=request.GET.get('sort'))
-                elif model_name =="rutfreporter":
-                        all = []
-                        rutf_reporters = scope.rutf_reporters()                        
-                        for rutf_reporter in rutf_reporters:
-                                reporter = {}
-                                reporter['first_name'] = rutf_reporter.first_name
-                                reporter['last_name'] = rutf_reporter.last_name
-                                reporter['phone'] = rutf_reporter.phone
-                                reporter['location'] = rutf_reporter.location
-                                all.append(reporter)
-                        table = RUTFReporterTable(all, order_by=request.GET.get('sort'))
+                #table = create_table(request,model_name, scope)
 
-                elif model_name == "healthpost":
-                        all = []
-                        rutf_healthposts = scope.health_posts()
-                        for rutf_healthpost in rutf_healthposts:
-                                # To filter out only the health posts
-                                if rutf_healthpost.type.name == "health post":
-                                        health_post = {}
-                                        health_post['name'] = rutf_healthpost.name
-                                        health_post['code'] = rutf_healthpost.code
-                                        health_post['type'] = rutf_healthpost.type.name
-                                        health_post['child_number'] = rutf_healthpost.number_of_child_location
-                                        health_post['parent_name'] = rutf_healthpost.parent_location_name
-                                        all.append(health_post)
-                        table = HealthPostTable(all, order_by=request.GET.get('sort'))
+                table = create_table(request,model_name, scope)
+                
                 
                 return render_to_response('rutf/reports.html',
                                           {'model_name':model_name,'table':table},
                                           context_instance=RequestContext(request))
+        
+        elif request.method == "GET" and request.GET.has_key('sort'):
+                # get the model name and field name
+
+                model_name = request.GET.get('model_name')
+                field_name = request.GET.get('sort')
+                
+                table = create_table(request,model_name, scope)
+                
+                return render_to_response('rutf/reports.html',
+                                          {'model_name':model_name,'table':table},
+                                          context_instance=RequestContext(request))
+
+        elif request.method == "GET" and request.GET.has_key('excel'):
+                # lets take the model name as report title
+                report_title = model_name = request.GET['model_name']
+
+                start, end = current_reporting_period()
+                dates = {"start":start, "end":end}
+
+                table = create_table(request,model_name, scope)
+              
+                
+                context_dict = {'get_vars': request.META['QUERY_STRING'],
+                    'table': table, 'dates': dates, 'report_title': report_title}
+                
+                
+                response = HttpResponse(mimetype="application/vnd.ms-excel")
+                filename = "%s %s.xls" % \
+                   (report_title, datetime.now().strftime("%d%m%Y"))
+                response['Content-Disposition'] = "attachment; " \
+                                  "filename=\"%s\"" % filename
+                response.write(create_excel(context_dict))
+                return response
+                
         else:
-                # By default, the report page displays the previous entries
+                # By default, the report page displays entries
+                
                 model_name = 'entry'
-                rutf_entries = scope.entries()
-                all = []
-                for rutf_entry in rutf_entries:
-                        entry = {}
-                        entry['supply_place'] = rutf_entry.supply_place
-                        entry['quantity'] = rutf_entry.quantity
-                        entry['consumption'] = rutf_entry.consumption
-                        entry['balance'] = rutf_entry.balance
-                        entry['rutf_reporter'] = rutf_entry.rutf_reporter
-                        all.append(entry)
-                table = EntryTable(all, order_by=request.GET.get('sort'))
+                table = create_table(request,model_name, scope)
                 return render_to_response('rutf/reports.html',
                                           {'model_name':model_name,'table':table},
                                           context_instance=RequestContext(request))
 
 
 @login_required
-def charts(request):
+@define_scope
+def charts(request, scope):
         ''' Display reported entries in chart form '''
+
+        
+        return render_to_response('rutf/charts.html',
+                                          {},
+                                          context_instance=RequestContext(request))
+        
 
 
 @login_required
-def map_entries(request):
+@define_scope
+def map_entries(request, scope):
 	def has_coords(entry):
 		loc = entry.supply_place.location
 		if loc is None: return False
 		return  (loc.latitude is not None) and (loc.longitude is not None)
 		
-	entries = filter(has_coords, Entry.objects.all())
-	#return render_to_response(request,"rutf/map.html", {"entries": entries})
-	return render_to_response("rutf/entries.html",
-                                  {"entries": entries},
+
+        entries = scope.entries()
+	entries_with_coordinate = filter(has_coords, Entry.objects.all())
+	return render_to_response("rutf/map_entries.html",
+                                  {"entries": entries_with_coordinate},
                                   context_instance=RequestContext(request))
 	
 
@@ -353,12 +337,26 @@ def index(request, scope):
         #refresh_graphs()
 
         get_or_generate_reporting_period()
-
+        start, end = current_reporting_period()
+        
         entries = scope.entries()
         notifications = scope.alerts()
         reporters = scope.rutf_reporters()
+        locations = scope.health_posts()
+        total_locations = len(locations)
+        total_reporters = len(reporters)
+
+        # total number of reports sent in the current period
+        current_period = get_or_generate_reporting_period()
+        entries_in_currentperiod = filter(lambda entries: entries.report_period == current_period, entries)
+        total_currentperiod_entries = len(entries_in_currentperiod)
+        
         return render_to_response('rutf/index.html',
-                              {"entries":entries,"notifications":notifications,"monitors":reporters}
+                              {"start":start, "end":end,
+                               "entries":entries,"notifications":notifications,
+                               "reporters":reporters, "total_locations":total_locations,
+                               "total_reporters":total_reporters,
+                               "total_currentperiod_entries":total_currentperiod_entries}
                               ,context_instance=RequestContext(request))
 
 
@@ -381,8 +379,112 @@ def reporter_detail(request, id):
         else:
                 return render_to_response('rutf/reporter_detail.html',reporter_detail,context_instance=RequestContext(request))
 
-                
 
+
+def create_table(request,model_name, scope):
+        if model_name == "entry":
+                all = []
+                rutf_entries = scope.entries()
+                for rutf_entry in rutf_entries:
+                        entry = SortedDict()
+                        entry['supply_place'] = rutf_entry.supply_place
+                        entry['quantity'] = rutf_entry.quantity
+                        entry['consumption'] = rutf_entry.consumption
+                        entry['balance'] = rutf_entry.balance
+                        entry['rutf_reporter'] = rutf_entry.rutf_reporter
+                        all.append(entry)
+                table = EntryTable(all, order_by=request.GET.get('sort'))
+        elif model_name =="alert":
+                all = []
+                rutf_alerts = scope.alerts()
+                for rutf_alert in rutf_alerts:
+                        alert = SortedDict()
+                        alert['notice'] = rutf_alert.notice
+                        alert['resolved'] = rutf_alert.resolved
+                        alert['time'] = rutf_alert.time
+                        alert['rutf_reporter'] = rutf_alert.rutf_reporter
+                        all.append(alert)
+                table = AlertTable(all, order_by=request.GET.get('sort'))
+        elif model_name =="supply":
+                all = []
+                rutf_supplies = Supply.objects.all()
+                for rutf_supply in rutf_supplies:
+                        supply = SortedDict()
+                        supply['name'] = rutf_supply.name
+                        supply['code'] = rutf_supply.code
+                        supply['unit'] = rutf_supply.unit
+                        all.append(supply)
+                table = SupplyTable(all, order_by=request.GET.get('sort'))
+        elif model_name =="rutfreporter":
+                all = []
+                rutf_reporters = scope.rutf_reporters()                        
+                for rutf_reporter in rutf_reporters:
+                        reporter = SortedDict()
+                        reporter['first_name'] = rutf_reporter.first_name
+                        reporter['last_name'] = rutf_reporter.last_name
+                        reporter['phone'] = rutf_reporter.phone
+                        reporter['location'] = rutf_reporter.location
+                        all.append(reporter)
+                table = RUTFReporterTable(all, order_by=request.GET.get('sort'))
+
+        elif model_name == "healthpost":
+                all = []
+                rutf_healthposts = scope.health_posts()
+                for rutf_healthpost in rutf_healthposts:
+                        # To filter out only the health posts
+                        if rutf_healthpost.type.name == "health post":
+                                health_post = SortedDict()
+                                health_post['name'] = rutf_healthpost.name
+                                health_post['code'] = rutf_healthpost.code
+                                health_post['type'] = rutf_healthpost.type.name
+                                health_post['child_number'] = rutf_healthpost.number_of_child_location
+                                health_post['parent_name'] = rutf_healthpost.parent_location_name
+                                all.append(health_post)
+                table = HealthPostTable(all, order_by=request.GET.get('sort'))
+
+        elif model_name == "webuser":
+                all = []
+                rutf_webusers = scope.web_user()
+                for rutf_webuser in rutf_webusers:
+                        # We can filter web users with specific role here
+                        
+                        web_user = SortedDict()
+                        web_user['first_name'] = rutf_webuser.first_name
+                        web_user['last_name'] = rutf_webuser.last_name
+                        web_user['username'] = rutf_webuser.username
+                        web_user['location'] = rutf_webuser.location
+                        all.append(web_user)
+                table = WebUserTable(all, order_by=request.GET.get('sort'))
+
+        return table
+
+
+
+def create_table_new(request,model_name, scope):
+        if model_name == "entry":
+                rutf_entries = scope.entries()
+                table = EntryTable(rutf_entries, request=request)
+        elif model_name =="alert":
+                rutf_alerts = scope.alerts()
+                table = AlertTable(rutf_alerts, request=request)
+        elif model_name =="supply":
+                rutf_supplies = Supply.objects.all()
+                table = SupplyTable(rutf_supplies, request=request)
+        elif model_name =="rutfreporter":
+                rutf_reporters = scope.rutf_reporters()                        
+                table = RUTFReporterTable(rutf_reporters, request=request)
+
+        elif model_name == "healthpost":
+                rutf_healthposts = scope.health_posts()
+                # Filter all the health posts
+                rutf_hp_only = filter(lambda rutf_healthposts: rutf_healthposts.type.name == "health post" ,rutf_healthposts)
+                #rutf_hp_only = [hp for hp in rutf_healthposts if hp.type.name == "health post"]
+                table = HealthPostTable(rutf_hp_only, request=request)
+        elif model_name == "webuser":
+                rutf_webuser = scope.web_user()
+                table = WebUserTable(rutf_webuser,request = request)
+
+        return table
 
 
 
