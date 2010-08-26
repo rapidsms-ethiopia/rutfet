@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+{% block title %}Entries as a Map{% endblock %}
+
+{% block javascripts %}
+{{ block.super }}
+
+
+<script src="http://maps.google.com/maps?file=api&amp;v=2&amp;key=ABQIAAAAg-8XYORS7v1h_9zDQNMVAhSVA0KX3RHSzNnk6nT8C9kt2staMxR_mIYMiXdrlrK5Te4_By9-iZF1mQ" type="text/javascript"></script>
+
+<script type="text/javascript" src="/static/rutfet/js/jquery.js"></script>
+
+<script type="text/javascript">
+	
+	var centerLatitude = 9.018218;
+	var centerLongitude = 38.758278;
+	var startZoom = 13;
+	
+	var Central_Loc = new GLatLng(centerLatitude, centerLongitude);
+	
+	$(document).ready(function() {
+		if (GBrowserIsCompatible()) {
+			var map = new GMap2($("#map"));
+
+			map.addControl(new GSmallMapControl());
+			map.addControl(new GMapTypeControl());
+			map.addControl(new GScaleControl()); 
+			map.setCenter(Central_Loc, startZoom);
+			
+			// switch to hybrid mode
+			map.setMapType(map.getMapTypes()[2])
+			
+			// behave similar to maps.google.com
+			map.enableScrollWheelZoom()
+		}
+	});
+	
+	{% for e in entries %}
+	(function() {
+		var mark = new GMarker(new GLatLng({{ e.supply_place.location.latitude }}, {{ e.supply_place.location.longitude }}))
+		mark.bindInfoWindow($("id.map-info"))
+		map.addOverlay(mark)
+	})();
+	{% endfor %}
+	
+	// garbage collection for dumb browsers
+	$(document).unload(function(){
+    		GUnload();
+	});
+
+
+</script>
+
+{% endblock %}
+
+
+{% block content %}
+<h2>Entries as Map</h2>
+
+
+<div id="map" style="width: 100%; height: 500px;"></div>
+
+<div id="map-entries" style="display: none;">
+	{% for e in entries %}
+	<div id="entry-{{ e.pk }}" class="map-info">
+		<h2>{{ e.supply_place.location }} ({{ e.supply_place.location.code }})</h2>
+		<table>
+			<caption>
+				Reported by: <strong>{{ e.rutf_reporter }}</strong>
+			</caption>
+			<tbody>
+				<tr>
+					<th>Received Quantity</th>
+					<td>{{ e.quantity }}</td>
+				</tr>
+				<tr>
+					<th>Consumption</th>
+					<td>{{ e.consumption }}</td>
+				</tr>
+				<tr>
+					<th>Stock Balance</th>
+					<td>{{ e.balance }}</td>
+				</tr>
+			</tbody>
+		</table>
+		<div class="datetime">{{ e.time }}</div>
+	</div>
+	{% endfor %}
+</div>
+
+{% endblock %}
