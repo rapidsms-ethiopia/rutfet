@@ -11,21 +11,7 @@ from rutfet.scope import *
 from django import template
 register = template.Library()
 
-@register.inclusion_tag("graph.html")
-def incl_graph():
-	pass
 
-
-@register.inclusion_tag("grid.html")
-def incl_grid():
-	today = datetime.today().date()
-##	entries = scope.entries()
-	start_date, end_date = current_reporting_period()
-        return {"entries": Entry.objects.filter(time__range = (start_date,end_date))}
-
-@register.inclusion_tag("map/entries.html")
-def incl_map():
-	pass
 
 @register.inclusion_tag("messages.html")
 def incl_messages(type):
@@ -43,20 +29,6 @@ def incl_messages(type):
 		"messages": Message.objects.filter(is_outgoing=og).order_by("-time")[:10]
 	}
 
-
-@register.inclusion_tag("send.html")
-def incl_send():
-	return {
-		"monitors": RUTFReporter.objects.all()
-	}
-
-
-@register.inclusion_tag("notifications.html")
-def incl_notifications():
-	return {
-		"caption": "Unresolved Notifications",
-		"notifications": Alert.objects.filter(resolved=False).order_by("-time")
-	}
 
 @register.inclusion_tag("period.html")
 def incl_reporting_period():
@@ -77,11 +49,9 @@ def incl_report_filter(context):
 	for model, m_admin in admin.site._registry.items():
 		
 		# fetch ALL fields (including those nested via
-		# foreign keys) for this model, via shared.py
-		fields = [
-			
-			# you'd never guess that i was a perl programmer...
-			{ "caption": escape(capt), "name": name, "help_text": field.help_text }
+		# foreign keys) for this model
+		
+		fields = [{ "caption": escape(capt), "name": name, "help_text": field.help_text }
 			for name, capt, field in filter(no_auto_fields, nested_fields(model))]
 		
 		# pass model metadata and fields array
