@@ -2,6 +2,9 @@ from django.conf.urls.defaults import *
 import os
 import rutfet.views as views
 
+from django.contrib import admin
+admin.autodiscover()
+
 urlpatterns = patterns("",
     
     # send sms
@@ -24,6 +27,9 @@ urlpatterns = patterns("",
 
     # Display detail information about the reporter
         (r'^rutf_reporter/(?P<id>\d+)/$', views.reporter_detail),
+
+    # Display admin page
+        (r'^admin/', include(admin.site.urls)),
 
                        
 )
