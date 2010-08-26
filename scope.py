@@ -106,6 +106,17 @@ class Scope:
                                 entries.append(entry)
                 return entries
 
+        def web_user(self):
+                ''' Return the rutf web_users who worker within the scope location '''
+                health_posts = self.health_posts()
+                web_users = []
+
+                # you can specify the role of the web user
+                for web_user in WebUser.objects.all():
+                        if web_user.location in health_posts:
+                                web_users.append(web_user)
+                return web_users
+
 
 
 def define_scope(f):
