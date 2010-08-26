@@ -21,7 +21,7 @@ ENGLISH = {
 	"whois":          "%s is %s",
 	"whois_help":     SORRY + "Please tell me who you are searching for, by replying: WHO IS USERNAME",
 
-	"alert_ok":       "Thanks %s, Your alert was received and sent to UNICEF",
+	"alert_ok":       "Thanks %s, Your alert was received and sent to Server",
 	"alert_help":     SORRY + "Please tell me what you are alerting, by replying: ALERT YOUR-NOTICE",
 	
 	"cancel_ok":      "Thanks %s, your %s report has been cancelled",	
@@ -31,11 +31,13 @@ ENGLISH = {
 	
 	"supplies_help":  SORRY + "To list all supply codes, please reply: SUPPLIES",
 	
-	"help_main":   "uniSMS Help: reply with HELP REGISTER for registration, HELP REPORT for entry formatting, or HELP ALERT for help with alerting",
+	"help_main":   "Help: reply with HELP REGISTER for registration, HELP REPORT for entry formatting, or HELP ALERT for help with alerting",
 	"help_help":   SORRY + "Please reply: HELP REGISTER, HELP REPORT or HELP ALERT",
 	"help_report": "To make a report reply with: SUPPLY-CODE LOCATION-CODE QUANTITY CONSUMPTION BALANCE. Separate data with spaces and reports with commas.",
-	"help_reg":  "If your mobile number is not registered, please reply: I AM YOUR-USERNAME",
-	"help_alert":  "To alert UNICEF, reply with ALERT followed by your notice",
+	#"help_reg":  "If your mobile number is not registered, please reply: I AM YOUR-USERNAME",
+        "help_reg":  "If your mobile number is not registered, please contact Health officer in the nearest woreda",
+	"help_alert":  "To send alert, reply with ALERT followed by your notice",
+        "help_cancel": "To cancel recent report, reply with CANCEL followed by location code. Or CANCEL without location code",
 
 	"conv_welc": "You're welcome, %s!",
 	"conv_greet": "Greetings, friend!",
