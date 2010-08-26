@@ -178,8 +178,8 @@ class SupplyPlace(models.Model):
 	quantity = models.PositiveIntegerField(blank=True, null=True, help_text="Balance at Location")
 	
 	def __unicode__(self):
-		return "%s at %s (%s)" %\
-		(self.supply.name, self.place, self.type)
+		return "%s" %\
+		(self.place)
 
 	class Meta:
 		verbose_name_plural="Supplies per Location"
@@ -221,10 +221,10 @@ class ReportPeriod(models.Model):
 
 class Entry(models.Model):
 	rutf_reporter = models.ForeignKey(RUTFReporter, help_text="Health Extension Worker / Health officer")
-	supply_place = models.ForeignKey(SupplyPlace, verbose_name="Place", help_text="The Health post/Woreda/Zone which this report was sent from")
-	quantity = models.PositiveIntegerField("Received Quantity", null=True)
+	supply_place = models.ForeignKey(SupplyPlace, verbose_name="", help_text="The Health post/Woreda/Zone which this report was sent from")
+	quantity = models.PositiveIntegerField("Quantity", null=True)
 	consumption = models.PositiveIntegerField("Consumption", null=True)
-	balance = models.PositiveIntegerField("Current Stock Balance", null=True)
+	balance = models.PositiveIntegerField("Balance", null=True)
         time = models.DateTimeField(auto_now_add=True)
         report_period = models.ForeignKey(ReportPeriod, verbose_name="Period", help_text="The period in which the data is reported")
         
@@ -244,6 +244,19 @@ class Entry(models.Model):
                                  
         receipt = property(_get_receipt)
 
+        @classmethod
+        def table_columns(cls):
+                columns = []
+                columns.append({'name': 'Supply Place',})
+                columns.append({'name': 'Quantity Received',})
+                columns.append({'name': 'Consumption',})
+                columns.append({'name': 'Balance',})
+                columns.append({'name': 'Reported By',})
+
+                sub_columns = None
+                
+                return columns, sub_columns
+
 
 class WebUser(User):
     ''' Extra fields for web users '''
@@ -256,8 +269,9 @@ class WebUser(User):
 
     # Use UserManager to get the create_user method, etc.
     objects = UserManager()
-
-    location = models.ForeignKey(Location, blank=True, null=True)
+##      location = models.ForeignKey(Location, blank=True, null=True)
+    
+    location = models.ForeignKey(HealthPost, blank=True, null=True)
 
     def health_posts(self):
 
