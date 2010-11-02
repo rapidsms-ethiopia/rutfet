@@ -6,30 +6,52 @@ from django.contrib import admin
 admin.autodiscover()
 
 urlpatterns = patterns("",
+
+    # Dashboard
+        (r'^$', views.index),
     
-    # send sms
-    #   (r'^send_sms/$', views.send_sms),
-
-    # HEW registration form for Woreda Health officer
-        (r'^rutf/register_HEW',views.register_hew),
-
-    # report in tabular form
-        (r'^rutf/reports', views.reports),
-
-    # report in chart form
-        (r'^rutf/charts', views.charts),
-	
-    # report in google maps view
-	(r'^rutf/map/$', views.map_entries),
 
     # index page of rutf application  
         (r'^rutf/$', views.index),
 
+    # report in tabular form
+        (r'^rutf/reports/$', views.reports),
+
+    # filter report tabular
+        (r'^rutf/filter_reports/$', views.filter_reports),
+
+    # report in chart form
+        (r'^rutf/charts/$', views.charts),
+	
+    # report in maps view
+	(r'^rutf/map/$', views.map_entries),
+                       
+    # send sms
+    #   (r'^rutf/send_sms/$', views.send_sms),
+
+    # Reporters
+        (r'^rutf/reporters/$', views.reporters),
+
+    # Healthposts
+        (r'^rutf/health_posts/$', views.healthposts),
+
+    # Healthpost detail
+        (r'^rutf/health_post/(?P<healthpost_id>\d+)/$', views.healthpost),
+                       
     # Display detail information about the reporter
-        (r'^rutf_reporter/(?P<id>\d+)/$', views.reporter_detail),
+        (r'^rutf/reporter/(?P<reporter_id>\d+)/$', views.reporter),
+
+    # Send SMS message to reporters 
+        (r'^rutf/send_sms/(?P<reporter_id>\d+)/$', views.send_sms),
+
+    # Send SMS message to reporters 
+        (r'^rutf/send_sms/$', views.send_sms),
+
+    # Interemediate page to confirm confirmation of Reports :)
+    #(r'^admin/confirmation/$', views.alert_detail),
 
     # Display admin page
-        (r'^admin/', include(admin.site.urls)),
+        #(r'^admin/$', include(admin.site.urls)),
 
                        
 )

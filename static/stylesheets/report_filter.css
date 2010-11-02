@@ -1,0 +1,44 @@
+/* Styles for filter report module */
+
+.hidden{
+
+display: none;
+
+}
+
+th{
+color: black;
+}
+
+span.addlink {
+color: black;
+cursor: pointer;
+}
+
+span.removelink {
+color: black;
+cursor: pointer;
+}
+
+
+.link_style {
+font-weight: bold;
+}
+
+
+select.fields.visible{
+ display: inline; 
+ 
+}
+
+select.fields{ 
+display: none; 
+}
+
+
+/* Filter Report modified */
+
+
+
+
+

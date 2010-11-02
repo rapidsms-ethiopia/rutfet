@@ -1,0 +1,143 @@
+{% extends "rutf/layout_local.html" %}
+{% block subtitle %}{{ health_post }}{% endblock %}
+
+
+{% block stylesheets %}
+{{ block.super }}
+
+<link type="text/css" rel="stylesheet" href="/static/rutfet/datatables/media/css/datatable.css" />
+<link type="text/css" rel="stylesheet" href="/static/rutfet/datatables/extras/TableTools/media/css/TableTools.css" />
+<style type="text/css">
+#details {
+    margin-top:15px;
+    margin-left:5px;
+    margin-right:5px;
+}
+#details td, #details th {
+    font-size:16px;
+    border:0;
+}
+#details th {
+    font-weight:bold;
+}
+</style>
+{% endblock stylesheets %}
+
+{% block javascripts %}
+{{ block.super }}
+<script type="text/javascript" language="javascript" src="/static/rutfet/datatables/media/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" language="javascript" src="/static/rutfet/datatables/extras/TableTools/media/ZeroClipboard/ZeroClipboard.js"></script>
+    <script type="text/javascript" language="javascript" src="/static/rutfet/datatables/extras/TableTools/media/js/TableTools.js"></script>
+    <script type="text/javascript" charset="utf-8">
+$(document).ready(function() {
+    {% for report in reports %}
+	    $('#{{report.name}}').dataTable({
+                    "bFilter": false,
+                    "iDisplayLength": 10,
+                    "aaSorting": [[1,'desc']],
+                    "aoColumns": [
+                        { "bVisible": false, "bSearchable": false },
+                        { "iDataSort": 0, "asSorting": [ "desc", "asc" ] },
+                        {{report.js|safe}}
+                    ]
+                });
+    {% endfor %}
+    } );
+</script>
+{% endblock javascripts %}
+
+
+{% block  content%}
+<h2>{{ health_unit }}</h2>
+
+<div class="module" style="width:455px;float:left;margin-right:10px"><h3>Details</h3>
+
+        <table id="details">
+            <tr><th>Name:</th><td>{{ health_post.name }} ({{ health_post.code }})</td></tr>
+            <tr><th>Woreda:</th><td colspan="3">{{ health_post.parent}}</td></tr>
+            <tr><th>Zone:</th><td>{{ health_post.parent.parent }}</td><th>Region:</th><td>{{ health_post.parent.parent.parent }}</td></tr>
+            
+            <!--<tr><th>Latitude:</th><td>{{ health_unit.catchment|default_if_none:"Unknown" }}</td><th>Longitude:</th><td>{{ health_unit.district }}</td></tr>-->
+        </table>
+</div>
+
+<div class="module" style="width:455px;float:left;"><h3>Reporters</h3>
+<table width="100%">
+<thead>
+	<tr>
+            <th>Name</th>
+            <th>Phone</th>
+    <tr>
+</thead>
+    <tbody>
+        {% for row in reporters %}
+            <tr>
+                <td>{{row.name}}</td> 
+                <td> {{row.phone}} {% if row.is_active %} (Active) {%endif%} </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+<div style="clear:both;"></div>
+<div class="module" style="width:922px;"><h3>Reports</h3>
+<table width="100%"> 
+    <thead><tr>
+        {% for column in table.columns %}
+            <th>
+            {% if column.sortable %}
+
+            <a href="?sort={{ column.name_toggled }}">
+            
+            {% endif %}
+            {{ column }}
+            {% if column.sortable %}</a>{% endif %}
+            </th>
+        {% endfor %}
+    <tr></thead>
+    <tbody>
+    
+    
+        {% for row in entry_rows.object_list %}
+            <tr>
+            			
+		<td>{{row.period }}</td>
+		<td>{{row.quantity }}</td>
+		<td>{{row.consumption }}</td>
+		<td>{{row.balance }}</td>
+		<td>{{row.rutf_reporter }}</td>
+
+			    
+            </tr>
+        {% endfor %}
+    </tbody>
+    </tfoot>
+    	<tr>
+    		<td colspan="5" style="text-align:right;">
+    			<span class="step-links">
+						{% if entry_rows.has_previous %}
+							<a href="?page={{ entry_rows.previous_page_number }}"> previous </a>
+						{% else %}
+							previous
+						{% endif %}
+						
+						<span class="current">
+						Page {{ entry_rows.number }} of {{ entry_rows.paginator.num_pages }}
+						</span>
+						
+						{% if entry_rows.has_next %}
+            						<a href="?page={{ entry_rows.next_page_number }}">next</a>
+            					{% else %}
+            						next
+       						{% endif %}
+       			</span>
+
+
+		</td>
+    	</tr>
+    </tfoot>
+    
+
+</table>
+
+{% endblock %}

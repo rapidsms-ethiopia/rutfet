@@ -23,21 +23,27 @@ ENGLISH = {
 
 	"alert_ok":       "Thanks %s, Your alert was received and sent to Server",
 	"alert_help":     SORRY + "Please tell me what you are alerting, by replying: ALERT YOUR-NOTICE",
+
+        "activate_ok":     "You are set to active reporter. Now you can send report.",
+        "activate_help":     SORRY + "To be active reporter, reply as: ACTIVATE",
 	
 	"cancel_ok":      "Thanks %s, your %s report has been cancelled",	
-	"cancel_code_ok": "Your last report for %s has been deleted",	
-	"cancel_none":    "You have not submitted any reports today, %s. If you wish to change an older entry, please call " + SUPPORT,
-	"cancel_help":    SORRY + "You may delete your last report by replying: CANCEL",
+	"cancel_code_ok": "Your last report for the health post %s has been deleted. Please send the correct report before the deadline.",	
+	#"cancel_none":    "You have not submitted any reports today, %s. If you wish to change an older entry, please call " + SUPPORT,
+        "cancel_none":    "You have not submitted any report in the current period, or you have entered wrong place code.",
+        "cancel_late":    "You are late to cancel a report.",
+	"cancel_help":    SORRY + "You may delete your last report by replying: CANCEL LOCATION-CODE",
 	
 	"supplies_help":  SORRY + "To list all supply codes, please reply: SUPPLIES",
 	
-	"help_main":   "Help: reply with HELP REGISTER for registration, HELP REPORT for entry formatting, or HELP ALERT for help with alerting",
-	"help_help":   SORRY + "Please reply: HELP REGISTER, HELP REPORT or HELP ALERT",
-	"help_report": "To make a report reply with: SUPPLY-CODE LOCATION-CODE QUANTITY CONSUMPTION BALANCE. Separate data with spaces and reports with commas.",
+	"help_main":   "Help: reply with HELP ACTIVATE for activation, HELP REPORT for report formatting, or HELP ALERT for help with alerting",
+	"help_help":   SORRY + "Please reply: HELP ACTIVATE, HELP REPORT or HELP ALERT",
+	"help_report": "To make a report reply with: SUPPLY-CODE LOCATION-CODE QUANTITY CONSUMPTION BALANCE.",
 	#"help_reg":  "If your mobile number is not registered, please reply: I AM YOUR-USERNAME",
         "help_reg":  "If your mobile number is not registered, please contact Health officer in the nearest woreda",
 	"help_alert":  "To send alert, reply with ALERT followed by your notice",
-        "help_cancel": "To cancel recent report, reply with CANCEL followed by location code. Or CANCEL without location code",
+        "help_cancel": "To cancel recent report, reply with CANCEL followed by location code.",
+        "help_activate":  "To be active reporter, reply as: ACTIVATE or ACTIVATE ME",
 
 	"conv_welc": "You're welcome, %s!",
 	"conv_greet": "Greetings, friend!",

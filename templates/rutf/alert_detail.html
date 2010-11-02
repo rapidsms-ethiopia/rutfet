@@ -1,0 +1,48 @@
+{% extends "rutf/layout_local.html" %}
+
+
+{% block title %} Alert Detail {% endblock %}
+
+{% block page_tabs %}
+<ul id="page-tabs">
+	<li class="page"><a href="/rutf/">Dashboard</a></li>
+	<li class="page"><a href="/rutf/health_posts">Health Posts</a></li>
+	<li class="page"><a href="/rutf/reporters">Reporters</a></li>
+	<li class="page"><a href="/rutf/filter_reports">Reports</a></li>
+    <li class="page"><a href="/rutf/map">Map</a></li>
+    <li class="page"><a href="/rutf/charts">Chart</a></li>
+</ul>
+{% endblock %}
+
+{% block stylesheets %}
+{{ block.super }}
+<link type="text/css" rel="stylesheet" href="static/rutfet/stylesheets/dashboard.css" />		
+
+{% endblock %}
+
+{% block javascripts %}
+{{ block.super }}
+<script type="text/javascript" src="/static/rutfet/js/jquery.js"></script>
+{% endblock %}
+
+{% block content %}
+
+
+<h2>Alert Detail </h2>
+
+
+	Name: {{first_name}}  <br>
+	Father Name: {{last_name}} <br>
+	Location: {{location}} <br>
+	Phone: {{time_sent}} <br>
+	
+	<form action="" method="POST">
+		{% if is_resolved %}
+			<input type="submit" value="Not Resolved" />	
+		{% else %}
+			<input type="submit" value="Resolved" />	
+		{% endif %}
+	</form>
+
+
+{% endblock %} 

@@ -35,16 +35,35 @@ class App (AppBase):
 	# something is probably broken, so perhaps we should warn)
 	except (ObjectDoesNotExist, MultipleObjectsReturned):
         	return None
+
+    def __get_reporter(self, phone):
+        try:
+            # attempt to fetch the object
+            reporters = []
+            for reporter in RUTFReporter.objects.all():
+                if reporter.phone == phone:
+                    reporters.append(reporter)
+
+            if len(reporters) > 0:
+                return reporters[0]
+            else:
+                return None
+		
+	# no objects or multiple objects found (in the latter case,
+	# something is probably broken, so perhaps we should warn)
+	except (ObjectDoesNotExist, MultipleObjectsReturned):
+        	return None
+            
             
     def __identify(self, message, task=None):
         caller = message.connection.identity
-        rutf_reporter = self.__get(RUTFReporter, phone=caller)
+        rutf_reporter = self.__get_reporter(phone=caller)
 		
 	# if the caller is not identified, then send
 	# them a message asking them to do so, and
 	# stop further processing
 	if not rutf_reporter:
-            msg = "Please register your mobile number"
+            msg = "Your phone is not registered. Please contact your supervisor"
             if task: msg += " before %s." % (task)
             #msg += ", by replying: I AM <USERNAME>"
             message.respond(msg)
@@ -53,19 +72,19 @@ class App (AppBase):
 	return rutf_reporter
 
 
-    def __monitor(self,message, alias):
+    def __monitor(self,message, user_name):
 	# some people like to include dots
 	# in the username (like "a.mckaig"),
 	# so we'll merrily ignore those
-	clean = alias.replace(".", "")
+	clean = user_name.replace(".", "")
 		
 	# attempt to fetch the rutf_reporter from db
-	# (for now, only by their ALIAS...
-	rutf_reporter = self.__get(RUTFReporter, alias=clean)
+	# (for now, only by their user_name...
+	rutf_reporter = self.__get(RUTFReporter, user_name=clean)
 		
 	# abort if nothing was found
 	if not rutf_reporter:
-        	message.respond(STR["unknown_alias"] % alias)
+        	message.respond(STR["unknown_name"] % user_name)
 		
 	return rutf_reporter
 		    
@@ -110,6 +129,8 @@ class App (AppBase):
 
     def start (self):
         """Configure your app in the start phase."""
+        #while True:
+        #    print "waiting"
         pass
 
     def parse (self, message):
@@ -127,7 +148,7 @@ class App (AppBase):
                 results = self.kw.match(self, message.text)
                 if results:
                     func, captures = results
-
+                    print func
                     # if a function was returned, then a this message
                     # matches the handler _func_. call it, and short-
                     # circuit further handler calls
@@ -158,15 +179,16 @@ class App (AppBase):
 
     
     # ALERT <NOTICE> ----------------------------------------------------------
-    kw.prefix = "alert"
+    #kw.prefix = "[\"'\s]* alert [\.,\"'\s]*"
 
-    @kw("(whatever)")
+    @kw("[\"'\s]*alert[\"'\s]*(whatever)")
     def alert(self, message, notice):
         caller = message.connection.identity
         rutf_reporter = self.__identify(message,"alerting")
-        Alert.objects.create(rutf_reporter=rutf_reporter, resolved=0, notice=notice)
-        message.respond(STR["alert_ok"] % (rutf_reporter.alias))
-    
+        if rutf_reporter is not None:
+            Alert.objects.create(rutf_reporter=rutf_reporter, resolved=0, notice=notice)
+            message.respond(STR["alert_ok"] % ("%s %s" % (rutf_reporter.first_name, rutf_reporter.last_name)))
+
     @kw.blank()
     @kw(r"\s+")
     def alert_help(self, message, *msg):
@@ -175,9 +197,9 @@ class App (AppBase):
 
 
     # CANCEL ------------------------------------------------------------------
-    kw.prefix = ["cancel", "cancle"]
+    kw.prefix = ["[\"'\s]*cancel", "[\"'\s]*cancle"]
 
-    @kw("(letters)")
+    @kw("[\"'\s]*(letters)[\"'\s]*")
     def cancel_code(self, message, code):
         caller = message.connection.identity
         rutf_reporter = self.__identify(message, "cancelling")
@@ -186,42 +208,36 @@ class App (AppBase):
             # attempt to find rutf_reporter's 
             # entry with this code in the current period
 
-            start_date, end_date = current_reporting_period()
+            month, year, late , dates_gc = current_reporting_period()
+            period = get_or_generate_reporting_period()
             entry = Entry.objects.filter(
-                    rutf_reporter=rutf_reporter,\
-                    time__range = (start_date,end_date),\
+                    #rutf_reporter=rutf_reporter,\
+                    report_period = period,\
                     supply_place__location__code=code)\
                     .order_by('-time')[0]
-
-            # delete it and notify
-            entry.delete()
-            message.respond(STR["cancel_code_ok"] % (code))
+            
+            if (late == True or entry.late == True) and rutf_reporter:
+                message.respond("You can't cancel the report. It has been reported late.\
+                                Or it is late to cancel the report")
+            elif rutf_reporter:
+                # delete it and notify
+                previous_reporter = entry.rutf_reporter
+                if rutf_reporter == previous_reporter:
+                    entry.delete()
+                    healthpost_name = HealthPost.objects.get(code = code).name
+                    message.respond(STR["cancel_code_ok"] % (healthpost_name))
+                else:
+                    message.respond("You can not cancel the report. \
+                        The report is sent by %s %s" % (previous_reporter.first_name, previous_reporter.last_name) )
 
         except (ObjectDoesNotExist, IndexError):
-            message.respond(STR["cancel_none"])
+            if late == False:
+                message.respond(STR["cancel_none"])
+            else:
+                message.respond(STR["cancel_late"])
 
-    @kw.blank()
-    def cancel(self, message):
-        caller = message.connection.identity
-        rutf_reporter = self.__identify(message, "cancelling")
-        
-        try:
-            # attempt to find the rutf_reporter's
-            # recent entry in the period
-            start_date, end_date = current_reporting_period()
-            latest = Entry.objects.filter(
-                    time__range = (start_date,end_date),
-                    rutf_reporter=rutf_reporter)\
-                    .order_by('-time')[0]
-            latest_desc = latest.supply_place	
-            # delete it and notify
-            latest.delete()
-            message.respond(STR["cancel_ok"] % (rutf_reporter.alias, latest_desc))
-        
-        except (ObjectDoesNotExist, IndexError):
-            message.respond(STR["cancel_none"] % (rutf_reporter.alias))
-    
     @kw.invalid()
+    @kw.blank()
     def cancel_help(self, message, *msg):
         message.respond(STR["cancel_help"])
 
@@ -229,19 +245,47 @@ class App (AppBase):
     
     
     # SUPPLIES ----------------------------------------------------------------
-    kw.prefix = ["supplies", "supplys", "supply", "sups"]
+    kw.prefix = ["[\"'\s]*supplies[\"'\s]*", "[\"'\s]*supplys[\"'\s]*", "[\"'\s]*supply[\"'\s]*", "[\"'\s]*sups[\"'\s]*"]
     @kw.blank()
     def supplies(self, message):
         caller = message.connection.identity
         rutf_reporter = self.__identify(message,"requesting supplies")
 
         if rutf_reporter is not None:
-            message.respond(["%s: %s" % (s.code, s.name)\
-            for s in Supply.objects.all()])
+            supplies = Supply.objects.all()
+            supply_name_code = ["%s (%s)" % (supply.name, supply.code) for supply in supplies]
+            supplylist = ", ".join(supply_name_code)
+            message.respond(supplylist)
     
     @kw.invalid()
     def supplies_help(self, message):
         message.respond(STR["supplies_help"])
+
+
+    # set me active reporter ------------------------------------------------
+    
+    kw.prefix = ["[\"'\s]*activate[\"'\s]*", "[\"'\s]*activate [\"'\s]*me[\"'\s]*",
+        "[\"'\s]*active[\"'\s]*", "[\"'\s]*set [\"'\s]*active[\"'\s]*"]
+    @kw.blank()
+    def activate_reporter(self, message):
+        caller = message.connection.identity
+        rutf_reporter = self.__identify(message,"Activating")
+        if rutf_reporter is not None and rutf_reporter.has_phone == True:
+            # set other reporters in that location as inactive
+            place_assigned = rutf_reporter.place_assigned
+            reporters = place_assigned.reporters
+            for reporter in reporters:
+                if reporter == rutf_reporter:
+                    rutf_reporter.is_active_reporter = True
+                    rutf_reporter.save()
+                    message.respond(STR["activate_ok"])
+                else:
+                    reporter.is_active_reporter = False
+                    reporter.save()
+                    
+    @kw.invalid()
+    def activate_help(self, message, *msg):
+        message.respond(STR["activate_help"])
     
 
     
@@ -266,6 +310,10 @@ class App (AppBase):
     @kw("cancel", "cancle")
     def help_report(self, message):
         message.respond(STR["help_cancel"])
+
+    @kw("activate", "activate me", "active")
+    def help_report(self, message):
+        message.respond(STR["help_activate"])
     
     @kw.invalid()
     def help_help(self, message, *msg):
@@ -307,13 +355,15 @@ class App (AppBase):
              
 ##    @kw("[\"'\s]*(letters)[,\.\s]*(\w+)(?:[,\.\s]*(\d+))?(?:[,\.\s]*(\d+))?(?:[,\.\s]*(\d+))?[\.,\"'\s]*")
 
-    @kw("[\"'\s]*(" + supply_code_str + ")[,\.\s]*(\w+)(?:[,\.\s]*(\d+))?(?:[,\.\s]*(\d+))?(?:[,\.\s]*(\d+))?[\.,\"'\s]*")
+    #@kw("[\"'\s]*(" + supply_code_str + ")[,\.\s]*(\w+)(?:[,\.\s]*(\d+))?(?:[,\.\s]*(\d+))?(?:[,\.\s]*(\d+))?[\.,\"'\s]*")
+    
+    @kw("[\"'\s]*(" + supply_code_str + ")[,\.\s]+(\w+)(?:[,\.\s]+(\d+))(?:[,\.\s]+(\d+))(?:[,\.\s]+(\d+))[\.,\"'\s]*")
     def report(self, message, supply_code, place_code, qty="", con="", bal=""):
         
         # ensure that the caller is known
         caller = message.connection.identity
         rutf_reporter = self.__identify(message, "reporting")
-        
+                
         
         # validate + fetch the supply
         sup_code = supply_code.upper()
@@ -322,219 +372,162 @@ class App (AppBase):
         if supply is None:
             message.respond(STR["unknown"]\
             % ("supply code", sup_code))
+            self.handled = True
 
         plc_code = place_code.upper()
         # the "place" can be Health post, woreda, or zone
         place = self.__get(HealthPost, code=plc_code)
 
-        if place is None:
-            message.respond(STR["unknown"]\
-            % ("place code", plc_code))
+##        if place is None:
+##            message.respond(STR["unknown"]\
+##            % ("place code", plc_code))
+##            self.handled = True
+
+        month, year, late , dates_gc = current_reporting_period()            
         
-        
-        # init variables to avoid
-        # pythonic complaints
-        health_post = None
-        woreda = None
-        zone = None
-        
-                
-        # fetch the supplylocation object, to update the current stock
-        # levels. if it doesn't already exist, just create it, because
-        # the administrators probably won't want to add them all...
-        sp, created = SupplyPlace.objects.get_or_create(supply=supply, location=place)
-        
-        # create the entry object, 
-        # unless its a duplicate report in the period
-        
-        start_date, end_date = current_reporting_period()
-        try:
-            entry = Entry.objects.filter(
-                    rutf_reporter=rutf_reporter,
-                    supply_place=sp,
-                    time__range = (start_date,end_date))\
-                    .order_by('-time')[0]
-
-
-
-            # if the reporter reports in the given period
-            # update the report with the new one
-
-            if entry is not None:
-                # update the entry
-                # or Delete the old one and insert the new report
-                entry.quantity = qty
-                entry.consumption = con
-                entry.balance = bal
-                entry.save()
-
-        # If the duplicate entry doesn't exist in the period
-        except (ObjectDoesNotExist, IndexError):
-
-                                  
-            # add the entry
-            # Get the reporting period
+        if rutf_reporter and supply and place and rutf_reporter.location == place and rutf_reporter.is_active_reporter == True:
+                        
+            # init variables to avoid
+            # pythonic complaints
+            health_post = None
+            woreda = None
+            zone = None
+            
+                    
+            # fetch the supplylocation object, to update the current stock
+            # levels. if it doesn't already exist, just create it, because
+            # the administrators probably won't want to add them all...
+            sp, created = SupplyPlace.objects.get_or_create(supply=supply, location=place)
+            
+            # create the entry object, 
+            # unless its a duplicate report in the period
+                        
             period = get_or_generate_reporting_period()
-            
-            Entry.objects.create(
-                    rutf_reporter=rutf_reporter,
-                    supply_place=sp,
-                    quantity=qty,
-                    consumption=con,
-                    balance=bal,
-                    report_period = period)
-        
-        # collate all of the information submitted, to
-        # be sent back and checked by the reporter
-        info = [
-                "qty=%s" % (qty or "??"),
-                "con=%s" % (con or "??"),
-                "bal=%s" % (bal or "??")]
-        
-        # notify the reporter of their new entry
-        if place is not None:
-            last_report = Entry.objects.filter(
-                    rutf_reporter=rutf_reporter,
-                    supply_place=sp,
-                    quantity=qty,
-                    consumption=con,
-                    balance=bal)[0]
-            
+            month_year = "%s-%s" % (month, year)
+            try:
+                entry = Entry.objects.filter(
+                        #rutf_reporter=rutf_reporter,
+                        supply_place=sp,
+                        report_period = period)\
+                        .order_by('-time')[0]
 
-            # Generate receipt
-            receipt = last_report.receipt
-            
-            message.respond(
-                    "Received %s report for %s %s by %s: %s.If this is not correct, reply with CANCEL %s. Receipt Number = %s" %\
-                    (supply.name, sp.type, sp.place, rutf_reporter, ", ".join(info), place.code ,receipt))
+
+
+                # if the reporter reports in the given period
+                # inform the reporter that he has sumbitted report again
+
+                if entry is not None:
+                    # or Delete the old one and insert the new report
+    ##                period = get_or_generate_reporting_period()
+    ##                entry.delete()
+    ##                Entry.objects.create(
+    ##                    rutf_reporter=rutf_reporter,
+    ##                    supply_place=sp,
+    ##                    quantity=qty,
+    ##                    consumption=con,
+    ##                    balance=bal,
+    ##                    report_period = period)
+
+                    # Inform the reporter
+                    if late == False:
+                        previous_reporter_name = "%s %s" % (entry.rutf_reporter.first_name,entry.rutf_reporter.last_name)
+                        current_reporter_name = "%s %s" % (rutf_reporter.first_name,rutf_reporter.last_name)
+
+                        if previous_reporter_name == current_reporter_name:
+                            message.respond("You have already reported for %s Month. \
+                                        If that was not correct, reply with CANCEL %s."
+                                        % (month_year, place.code))
+                        else:
+                            message.respond("%s have already reported for %s Month.\
+                                            The previous report should be canceled first."
+                                        % (previous_reporter_name, month_year))
+                            
+                    else:
+                        previous_reporter_name = "%s %s" % (entry.rutf_reporter.first_name,entry.rutf_reporter.last_name)
+                        current_reporter_name = "%s %s" % (rutf_reporter.first_name,rutf_reporter.last_name)
+                        if previous_reporter_name == current_reporter_name:
+                            message.respond("You have already reported for %s Month. \
+                                        But now you are late to correct the previous report."
+                                        % (month_year))
+                        else:
+                            message.respond("%s have already reported for %s Month. \
+                                        But now you are late to correct the previous report."
+                                        % (previous_reporter_name,month_year))
+                    
+
+            # If duplicate entry doesn't exist in the period
+            except (ObjectDoesNotExist, IndexError):
+
+                hp_allowed_late = False
+                try:
+                    LateHealthPost.objects.get(location = place, accept_late_report = True)
+                    hp_allowed_late = True
+                except Exception, e:
+                    print e
+                    
+                # add the entry
+                # Get the reporting period
+
+                if late == False or hp_allowed_late:
+                    Entry.objects.create(
+                            rutf_reporter=rutf_reporter,
+                            supply_place=sp,
+                            quantity=qty,
+                            consumption=con,
+                            balance=bal,
+                            report_period = period,
+                            late = late)
+                
+                    # collate all of the information submitted, to
+                    # be sent back and checked by the reporter
+                    info = [
+                            "qty=%s" % (qty or "??"),
+                            "con=%s" % (con or "??"),
+                            "bal=%s" % (bal or "??")]
+                    
+                    # notify the reporter of their new entry
+                    #if place is not None:
+                    last_report = Entry.objects.filter(
+                            rutf_reporter=rutf_reporter,
+                            supply_place=sp,
+                            quantity=qty,
+                            consumption=con,
+                            report_period = period,
+                            balance=bal)[0]
+                        
+
+                    # Generate receipt
+                    new_receipt = last_report.new_receipt
+                    # then update the receipt value of the report
+                    last_report.receipt = new_receipt
+                    last_report.save()
+                    
+                    message.respond(
+                            "Received %s report for %s %s by %s: %s.If this is not correct, reply with CANCEL %s. Receipt Number = %s" %\
+                            (supply.name, sp.type, sp.place.name, rutf_reporter, ", ".join(info), place.code ,new_receipt))
+                else:
+                    message.respond("You can not send your report. you are late.")
+        else:
+            if late == True and rutf_reporter:
+                message.respond("You can not send your report. you are late.")                
+                
+            elif rutf_reporter:
+                if rutf_reporter.is_active_reporter == True:
+                    reporter_location_code = rutf_reporter.location.code
+                    message.respond("You can not send your report. \
+                        please check the supply code and the location code. \
+                        Your location code is: %s" % reporter_location_code)
+                else:
+                    message.respond("Currently you are not active reporter. \
+                        To activate yourself, please reply as: ACTIVATE")
+                    
         
         
     @kw.invalid()
     def help_report(self, message, *msg):
-        message.respond(STR["help_report"])
-
-       
-
-
-    # NO IDEA WHAT THE CALLER WANTS -------------------------------------------
-	
-    def incoming_sms(self, message, msg):
         caller = message.connection.identity
-        self.log("No match by regex", "warn")
-        
-        # we will only attempt to guess if
-        # it looks like the caller is trying
-        # to use these functions
-        guess_funcs = (
-                self.identify,
-                self.report,
-                self.alert)
-        
-        while(len(msg) > 0):
-                found = False
-                
-                # iterate each guessable function, and each
-                # of its regexen without their tailing DOLLAR.
-                # since we couldn't find a real match, we're
-                # looking for a matching prefix (in case the
-                # sender has appended junk to their message,
-                # or concatenated multiple messages without
-                # proper delimitors)
-                for func in guess_funcs:
-                        for regex in getattr(func, "regexen"):
-                                pattern = regex.pattern.rstrip("$")
-                                new_regex = re.compile(pattern, re.IGNORECASE)
-                                
-                                # does the message START with
-                                # the applied pattern?
-                                match = new_regex.match(msg)
-                                if match:
-                                        
-                                        # hack: since we're about to recurse via d_i_sms,
-                                        # the chopped up message will be entered into the
-                                        # database as if it were a real message, which will
-                                        # confuse the log. this flag instructs before_incoming
-                                        # to mark the following messages as virtual
-                                        self.processing_virtual = True
-                                        
-                                        # log and dispatch the matching part, as if
-                                        # it were a regular incoming message
-                                        self.log("Prefix matches function: %s" % (func.func_name), "info")
-                                        self.dispatch_incoming_sms(caller, match.group(0))
-                                        
-                                        # revert to normal behavior
-                                        self.processing_virtual = False
-                                        
-                                        # drop the part of the message
-                                        # that we just dealt with, and
-                                        # continue with the next iteration
-                                        msg = new_regex.sub("", msg, 1).strip()
-                                        found = True
-                                        break
-                
-                # nothing matched in this iteration,
-                # so it won't ever. abort :(
-                if not found:
-                        self.log("No match for: %r" % (msg), "warn")
-                        message.respond(STR["error"])
+        rutf_reporter = self.__identify(message, "reporting")
 
+        if rutf_reporter:
+            message.respond(STR["help_report"])
 
-
-
-    # LOGGING -----------------------------------------------------------------
-    
-    # always called by smsapp, to log
-    # without interfereing with dispatch
-    def before_incoming(self, caller, msg):
-            
-            # we will log the rutf_reporter, if we can identify
-            # them by their number. otherwise, log the number
-            mon = self.__get(rutf_reporter, phone=caller)
-            if mon is None: ph = caller
-            else: ph = None
-            
-            # don't log if the details are the
-            # same as the transaction itself
-            if mon == self.transaction.rutf_reporter: mon = None
-            if ph  == self.transaction.phone:   ph  = None
-            
-            # see above (hack) for explanation
-            # of t his 'virtual' flag
-            virt = False
-            if hasattr(self, "processing_virtual"):
-                    virt = self.processing_virtual
-            
-            # create a new log entry
-            Message.objects.create(
-                    transaction=self.transaction,
-                    is_outgoing=False,
-                    phone=caller,
-                    rutf_reporter=mon,
-                    message=msg,
-                    is_virtual=virt)
-    
-    
-    # as above...
-    def before_outgoing(self, recipient, msg):
-            
-            # we will log the rutf_reporter, if we can identify
-            # them by their number. otherwise, log the number
-            mon = self.__get(rutf_reporter, phone=recipient)
-            if mon is None: ph = recipient
-            else: ph = None
-            
-            # don't log if the details are the
-            # same as the transaction itself
-            if mon == self.transaction.rutf_reporter: mon = None
-            if ph  == self.transaction.phone:   ph  = None
-            
-            # create a new log entry
-            Message.objects.create(
-                    transaction=self.transaction,
-                    is_outgoing=True,
-                    phone=recipient,
-                    rutf_reporter=mon,
-                    message=msg)
-
-    def getRouter(self):
-        return self.router

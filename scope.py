@@ -81,6 +81,9 @@ class Scope:
 
                 health_posts = self.health_posts()
                 rutf_reporters = []
+##                for rutf_reporter in RUTFReporter.objects.filter(role__code = 'hew'):
+##                for rutf_reporter in RUTFReporter.objects.all():
+                
                 for rutf_reporter in RUTFReporter.objects.filter(role__code = 'hew'):
                         if HealthPost.by_location(rutf_reporter.location) in health_posts:
                                 rutf_reporters.append(rutf_reporter)
@@ -96,13 +99,23 @@ class Scope:
                                 alerts.append(alert)
                 return alerts
 
+##        def entries(self):
+##                ''' Return the rutf entries which are reported by the
+##                health extension worker within the scope location '''
+##                rutf_reporters = self.rutf_reporters()
+##                entries = []
+##                for entry in Entry.objects.all():
+##                        if entry.rutf_reporter in rutf_reporters:
+##                                entries.append(entry)
+##                return entries
+
         def entries(self):
-                ''' Return the rutf entries which are reported by the
-                health extension worker within the scope location '''
-                rutf_reporters = self.rutf_reporters()
+                ''' Return the rutf entries which are reported
+                from location in that is in the user's scope'''
+                health_posts = self.health_posts()
                 entries = []
                 for entry in Entry.objects.all():
-                        if entry.rutf_reporter in rutf_reporters:
+                        if entry.supply_place.location in health_posts:
                                 entries.append(entry)
                 return entries
 

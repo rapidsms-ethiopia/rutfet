@@ -1,0 +1,177 @@
+{% extends "rutf/layout_local.html" %}
+{% block title %}Entries as a Map{% endblock %}
+
+
+
+{% block stylesheets %}
+{{ block.super }}
+<link rel="stylesheet" type="text/css" href="/static/rutfet/stylesheets/jquery-ui-1.8.5.custom.css">
+<style type="text/css">
+		
+	.hidden{
+
+	display: none;
+
+	}
+</style>
+
+{% endblock %}
+
+{% block javascripts %}
+{{ block.super }}
+<script type="text/javascript" src="/static/rutfet/js/jquery.js"></script>
+<script type="text/javascript" src="/static/rutfet/js/jquery-ui-1.8.5.custom.min.js"></script>
+
+<script type="text/javascript">
+	$(document).ready(function() {
+	
+		//select either haromaya woreda map or kombolcha woreda map
+		/*$("#location_name").bind("change", function(e) {
+			//alert(e.target.value)
+			if(e.target.value == "Haromaya")
+			{
+				$("#haromaya_map").removeClass("hidden");
+				$("#kombolcha_map").addClass("hidden");
+			}
+			else if(e.target.value == "Kombolcha")
+			{
+				$("#haromaya_map").addClass("hidden");
+				$("#kombolcha_map").removeClass("hidden");
+			}
+			
+		});*/
+		{% if entries %}
+			{% for entry in entries %}
+				$('#{{entry.supply_place.location.code}}').click(function(e) {
+			
+					var $dialog = $('<div></div>')
+					.html('<div> Reporter:<strong> {{entry.rutf_reporter.first_name}} {{entry.rutf_reporter.last_name}} </strong> <br> \
+						<table> \
+						<tr> <td> Quantity: </td> <td> {{entry.quantity}} </td> </tr> \
+						<tr> <td> Consumption: </td> <td> {{entry.consumption}} </td> </tr> \
+						<tr> <td> Balance: </td> <td> {{entry.balance}} </td> </tr> \
+						<tr> <td> Report Period: </td> <td> {{entry.report_period}} </td> </tr> \
+						<tr> <td> Time Sent: </td> <td> {{entry.time}}</td> </tr> \
+						</table> </div>')
+				
+					.dialog({
+						autoOpen: false,
+						title: '{{entry.supply_place.location.name}} {{entry.supply_place.location.type.name}}',
+						position: [e.clientX,e.clientY]
+					});
+				
+					$dialog.dialog('open');
+					// prevent the default action, e.g., following a link
+									
+					return false;
+				});
+			{% endfor %}
+		{% endif %}
+
+			{% for healthpost in late_healthposts %}
+			
+				$('#{{healthpost.code}}').click(function(e) {
+			
+					var $dialog = $('<div></div>')
+					.html('No Data available')
+				
+					.dialog({
+						autoOpen: false,
+						title: '{{healthpost.name}}  {{healthpost.type.name}}',
+						position: [e.clientX,e.clientY]
+					});
+				
+					$dialog.dialog('open');
+					// prevent the default action, e.g., following a link
+									
+					return false;
+				});
+			{% endfor %}
+			
+
+		
+	});
+</script>
+
+{% endblock %}
+
+
+{% block content %}
+<h2>Entries as Map</h2>
+<!-- Select the woreda from the list -->
+
+<form method="POST" action = "">
+	<table>
+	
+	<tr>
+	
+		<td>
+		Location Type:
+		<select name = "location_type">
+		<option value="" selected="selected">----------</option>
+		{% for location_type in location_types %}
+			<option value ="{{location_type}}">{{location_type}}</option>
+		{% endfor %}
+		</td>
+		
+		<td>
+		Location Name:
+		<select name = "location_name" id="location_name">
+		<option value="" selected="selected">----------</option>
+		{% for location_name in location_names %}
+			<option value ="{{location_name}}"> {{location_name}} </option>
+		{% endfor %}
+		</select>
+		</td>
+		<td>
+			<input type="submit" class="show" value="Show" />
+		</td>
+	</tr>
+
+</table>
+</form>
+
+
+<!-- Haromaya woreda Map -->
+<div id="haromaya_map">
+	<img src="/static/rutfet/map/Haromaya.JPG" alt="Haramaya Woreda Map" width="794" height="1122" border="0" usemap="#Map" />
+	<map name="Map" id="Map">
+	  <area id= "bga" shape="circle" coords="322,200,9" href="#" />
+	  <area id= "kur" shape="circle" coords="486,192,9" href="#" />
+	  <area id= "amu" shape="circle" coords="519,127,10" href="#" />
+	  <area id= "bac" shape="circle" coords="624,196,9" href="#" />
+	  <area id= "fin" shape="circle" coords="572,222,8" href="#" />
+	  <area id= "tga" shape="circle" coords="513,292,9" href="#" />
+	  <area id= "dam" shape="circle" coords="692,292,10" href="#" />
+	  <area id= "bat" shape="circle" coords="613,313,9" href="#" />
+	  <area id= "awa" shape="circle" coords="411,396,10" href="#" />
+	  <area id= "qor" shape="circle" coords="352,428,10" href="#" />
+	  <area id= "gsa" shape="circle" coords="485,418,10" href="#" />
+	  <area id= "ibt" shape="circle" coords="584,377,10" href="#" />
+	  <area id= "haq" shape="circle" coords="638,424,9" href="#" />
+	  <area id= "fan" shape="circle" coords="717,432,10" href="#" />
+	  <area id= "dqa" shape="circle" coords="329,474,9" href="#" />
+	  <area id= "awu" shape="circle" coords="257,513,10" href="#" />
+	  <area id= "kda" shape="circle" coords="371,545,11" href="#" />
+	  <area id= "gca" shape="circle" coords="466,560,11" href="#" />
+	  <area id= "mba" shape="circle" coords="597,546,11" href="#" />
+	  <area id= "gqi" shape="circle" coords="207,644,12" href="#" />
+	  <area id= "aba" shape="circle" coords="400,682,9" href="#" />
+	  <area id= "nag" shape="circle" coords="615,619,9" href="#" />
+	  <area id= "hfi" shape="circle" coords="413,793,9" href="#" />
+	  <area id= "mga" shape="circle" coords="596,729,9" href="#" />
+	  <area id= "iba" shape="circle" coords="502,951,11" href="#" />
+	  <area id= "xin" shape="rect" coords="44,115,103,138" href="#" />
+	  <area id= "qda" shape="rect" coords="42,152,115,171" href="#" />
+	  <area id= "ior" shape="rect" coords="45,183,127,204" href="#" />
+	  <area id= "qqa" shape="rect" coords="48,219,144,241" href="#" />
+	  <area id= "qga" shape="rect" coords="44,252,142,276" href="#" />
+	  <area id= "uga" shape="rect" coords="44,287,98,306" href="#" />
+	  <area id= "kta" shape="rect" coords="47,321,145,341" href="#" />
+	  <area id= "had" shape="rect" coords="45,354,122,374" href="#" />
+	  <area id= "ad5" shape="rect" coords="42,387,121,408" href="#" />
+	  <area id= "kqa" shape="rect" coords="45,419,164,447" href="#" />
+	</map>
+</div>
+
+{% endblock %}

@@ -1,5 +1,6 @@
-{% extends "layout.html" %}
+{% extends "rutf/layout_local.html" %}
 {% block title %}Entries as a Map{% endblock %}
+
 
 {% block javascripts %}
 {{ block.super }}
@@ -7,55 +8,11 @@
 
 <script src="http://maps.google.com/maps?file=api&amp;v=2&amp;key=ABQIAAAAg-8XYORS7v1h_9zDQNMVAhSVA0KX3RHSzNnk6nT8C9kt2staMxR_mIYMiXdrlrK5Te4_By9-iZF1mQ" type="text/javascript"></script>
 
-<script type="text/javascript" src="/static/rutfet/js/jquery.js"></script>
-
-<script type="text/javascript">
-	
-	var centerLatitude = 9.018218;
-	var centerLongitude = 38.758278;
-	var startZoom = 13;
-	
-	var Central_Loc = new GLatLng(centerLatitude, centerLongitude);
-	
-	$(document).ready(function() {
-		if (GBrowserIsCompatible()) {
-			var map = new GMap2($("#map"));
-
-			map.addControl(new GSmallMapControl());
-			map.addControl(new GMapTypeControl());
-			map.addControl(new GScaleControl()); 
-			map.setCenter(Central_Loc, startZoom);
-			
-			// switch to hybrid mode
-			map.setMapType(map.getMapTypes()[2])
-			
-			// behave similar to maps.google.com
-			map.enableScrollWheelZoom()
-		}
-	});
-	
-	{% for e in entries %}
-	(function() {
-		var mark = new GMarker(new GLatLng({{ e.supply_place.location.latitude }}, {{ e.supply_place.location.longitude }}))
-		mark.bindInfoWindow($("id.map-info"))
-		map.addOverlay(mark)
-	})();
-	{% endfor %}
-	
-	// garbage collection for dumb browsers
-	$(document).unload(function(){
-    		GUnload();
-	});
-
-
-</script>
-
 {% endblock %}
 
 
 {% block content %}
 <h2>Entries as Map</h2>
-
 
 <div id="map" style="width: 100%; height: 500px;"></div>
 
@@ -63,10 +20,11 @@
 	{% for e in entries %}
 	<div id="entry-{{ e.pk }}" class="map-info">
 		<h2>{{ e.supply_place.location }} ({{ e.supply_place.location.code }})</h2>
-		<table>
+		<table width="100%">
 			<caption>
-				Reported by: <strong>{{ e.rutf_reporter }}</strong>
+				Reported by: <strong>{{ e.rutf_reporter }}</strong><br/>
 			</caption>
+
 			<tbody>
 				<tr>
 					<th>Received Quantity</th>
@@ -82,9 +40,135 @@
 				</tr>
 			</tbody>
 		</table>
-		<div class="datetime">{{ e.time }}</div>
+		<br/>
+		<div class="datetime">Reported on: {{ e.time }}</div>
 	</div>
 	{% endfor %}
 </div>
+
+<div id="map-healthposts" style="display: none;">
+	{% for healthpost in health_posts %}
+	<div id="hp-{{ healthpost.pk }}" class="map-info">
+		<h2>{{ healthpost }} ({{ healthpost.code }})</h2>
+		<table width="100%">
+			<caption>
+				Reporters : <strong>{{ healthpost.reporters_name}}</strong> <br/>
+			</caption>
+			<tbody>
+				<tr>
+					<td> There is no report in the current period.</td>
+				</tr>
+				
+			</tbody>
+		</table>
+	</div>
+	{% endfor %}
+</div>
+
+
+
+<script type="text/javascript">
+
+	
+	// Hara center  9.322107, 42.126846
+	var centerLatitude = 9.393042;
+	var centerLongitude = 42.024651;
+	var startZoom = 10;
+		
+	function init() 
+	{
+		if (GBrowserIsCompatible()) 
+		{
+			var map = new GMap2(document.getElementById("map"));
+			var Central_Loc = new GLatLng(centerLatitude, centerLongitude);
+			map.addControl(new GSmallMapControl());
+			map.addControl(new GMapTypeControl());
+			map.addControl(new GScaleControl()); 
+			map.setCenter(Central_Loc, startZoom);
+			
+			// switch to hybrid mode
+			map.setMapType(map.getMapTypes()[2]);
+			
+			// behave similar to maps.google.com
+			map.enableScrollWheelZoom();
+			
+			
+			//Create custom icons for health post, woreda, zone and region
+			
+			//var greenIcon = new GIcon(G_DEFAULT_ICON);
+			//greenIcon.image = "/static/rutfet/h.png";
+			//var markerOptions = {icon:greenIcon };
+						
+			var hpIcon = new GIcon();
+			hpIcon.image = 'http://labs.google.com/ridefinder/images/mm_20_green.png';
+			hpIcon.shadow = 'http://labs.google.com/ridefinder/images/mm_20_shadow.png';
+		    	hpIcon.iconSize = new GSize(18, 30);
+		    	hpIcon.shadowSize = new GSize(22, 20);
+		    	hpIcon.iconAnchor = new GPoint(6, 20);
+		    	hpIcon.infoWindowAnchor = new GPoint(5, 1);
+		    	
+		    	
+			var wIcon = new GIcon();
+			wIcon.image = 'http://labs.google.com/ridefinder/images/mm_20_blue.png';
+			wIcon.shadow = 'http://labs.google.com/ridefinder/images/mm_20_shadow.png';
+			wIcon.iconSize = new GSize(12, 20);
+		    	wIcon.shadowSize = new GSize(22, 20);
+		    	wIcon.iconAnchor = new GPoint(6, 20);
+		    	wIcon.infoWindowAnchor = new GPoint(5, 1);
+		    	
+			var zIcon = new GIcon();
+			zIcon.image = 'http://labs.google.com/ridefinder/images/mm_20_yellow.png';
+			zIcon.shadow = 'http://labs.google.com/ridefinder/images/mm_20_shadow.png';
+			zIcon.iconSize = new GSize(12, 20);
+		    	zIcon.shadowSize = new GSize(22, 20);
+		    	zIcon.iconAnchor = new GPoint(6, 20);
+		    	zIcon.infoWindowAnchor = new GPoint(5, 1);
+		    	
+			var rIcon = new GIcon();
+			rIcon.image = 'http://labs.google.com/ridefinder/images/mm_20_red.png';
+			rIcon.shadow = 'http://labs.google.com/ridefinder/images/mm_20_shadow.png';
+			rIcon.iconSize = new GSize(12, 20);
+		    	rIcon.shadowSize = new GSize(22, 20);
+		    	rIcon.iconAnchor = new GPoint(6, 20);
+		    	rIcon.infoWindowAnchor = new GPoint(5, 1);
+		    	
+		    	{% for healthpost in health_posts %}
+				var mark = new GMarker(new GLatLng({{ healthpost.latitude }},
+						 {{ healthpost.longitude }}), hpIcon);
+						
+				mark.bindInfoWindow(document.getElementById("hp-{{ healthpost.pk }}"));
+				map.addOverlay(mark);
+				
+			{% endfor %}
+			
+		    				
+
+			{% for e in entries %}
+				var mark = new GMarker(new GLatLng({{ e.supply_place.location.latitude }},
+					 {{ e.supply_place.location.longitude }}), hpIcon);
+					
+				mark.bindInfoWindow(document.getElementById("entry-{{ e.pk }}"));
+				map.addOverlay(mark);
+			{% endfor %}
+				
+		
+			
+			
+			
+			
+			
+		}
+	}
+	
+	
+	
+	// Initalization
+	window.onload = init;
+	
+	// garbage collection for dumb browsers
+	window.unload = GUnload;
+
+
+</script>
 
 {% endblock %}

@@ -1,39 +1,245 @@
-{% extends "layout-split-2.html" %}
+{% extends "rutf/layout-split-2_local.html" %}
 
-{% load includes %}
+{% load region_tags %}
+{% load tabs_tags %}
+{% load i18n %}
+
 {% block title %} RUTF summary {% endblock %}
 
-{% block page_stylesheets %}
-	<link rel="stylesheet" href="/static/rutfet/stylesheets/dashboard.css" />
-{% endblock page_stylesheets %}
+
+
+{% block stylesheets %}
+{{ block.super }}
+<link rel="stylesheet" type="text/css" href="/static/rutfet/stylesheets/jquery-ui-1.8.5.custom.css">
+<style text="text/css">
+
+	span.reply {
+	color: #74B5FF;
+	cursor: pointer;
+	font-weight:bold;
+	}
+	
+	span.normal {
+	color: #74B5FF;
+	cursor: pointer;
+	}
+	
+		
+</style>
+{% endblock %}
 
 {% block javascripts %}
-<script type="text/javascript" src="/static/js/jquery.js"></script>
+{{ block.super }}
+<script type="text/javascript" src="/static/rutfet/js/jquery.js"></script>
+<script type="text/javascript" src="/static/rutfet/js/jquery-ui-1.8.5.custom.min.js"></script>
 
+<script type="text/javascript">
+
+	$(document).ready(function() {
+		// set action to select all and select non options
+		
+		{% if notifications %}
+			{% for n in notifications.object_list %}
+				$('#reply-reporter-{{n.pk}}').click(function(e) {
+					var $dialog = $('<div></div>')
+					.html('<div> Message: <form action="/rutf/" method="POST"> \
+							<textarea cols="40" rows="5" name="text_message"></textarea> \
+							<input type="hidden" name="reporer_id" value="{{n.rutf_reporter.pk}}" /> \
+							<input type="submit" name="submit" value="Send SMS" /> \
+						</form> </div>')
+				
+					.dialog({
+						autoOpen: false,
+						modal: true,
+						autoResize:true,
+						width: 425,
+
+						title: 'Reply to {{n.rutf_reporter.first_name}} {{n.rutf_reporter.last_name}}',
+						/*buttons: {
+							"Send SMS": function() {
+								alert("hi");
+							},
+							
+							Cancel: function() {
+								$( this ).dialog( "close" );
+							}
+						}*/
+
+						
+					});
+				
+					$dialog.dialog('open');
+														
+					return false;
+					
+				});
+		
+	
+				$("#reply-reporter-{{n.pk }}").hover(function() {
+		  			$(this).addClass('reply');},
+		  			function() {
+		  			$(this).removeClass('reply');
+		  		});
+		  	{% endfor %}
+	  		
+	  	{% endif %}
+  		
+  				
+	});
+									
+</script>
 {% endblock %}
 
 
 {% block left %}
-<div class="module">
-	<p>
-		Current reporting period is:<br>
-		<strong>
-		<span class="start">{{ start|date:"D dS M" }}</span>
-		to <span class="to">{{ end|date:"D dS M" }}</span>
-		</strong>
 
-	</p>
+<!-- Check whether reply is sent -->
+
+{% ifnotequal recipients_name "" %}
+	{%if reply_sent %}
+		<div style="background-color: #FFF00C;font-weight:bold;text-align:center;font-size:14px;height:30px; vertical-align:middle" > Your reply is sent to {{recipients_name}} </div>
+	{% else %}
+		<div style="background-color: Red;font-weight:bold;text-align:center;font-size:14px;height:30px; vertical-align:middle" > Your reply is not sent to {{recipients_name}} </div>
+	{% endif %}
 	
-	<p>
-		<a href="#"><strong>{{ total_locations }}</strong> locations </a> are registered.<br/>
-        	<a href="#"><strong>{{ total_reporters }}</strong> reporters </a> are registered<br/>
-        	<a href="#"><strong>{{ total_currentperiod_entries }}</strong> report{{ summary.up2date|pluralize }}</a> ha{{ summary.up2date|pluralize:"s,ve" }} been reported in the current period
-	</p>
+{% endifnotequal %}
+
+
+
+<div class="module">
+
+	<div>
+		<h3> Current Period Summary </h3>
+		
+		<img alt="Reporter and Non-Reporter proportion in pie chart" src="{{chart_src_path}}" align="left" >
+		
+		<p>
+		Current reporting period is:<br>
+		<strong><span class="start">{{ month}} - {{year}}</span></strong> <br>
+		<a href="/rutf/health_posts"><strong>{{ total_locations }}</strong> health posts </a> are registered.<br/>
+		<a href="/rutf/reporters"><strong>{{ total_reporters }}</strong> reporters </a> are registered<br/>
+		
+		<a href="/rutf/health_posts?hp_filter=reported"><strong>{{ total_currentperiod_entries }}</strong> health post{{ total_currentperiod_entries|pluralize }}</a> ha{{ total_currentperiod_entries|pluralize:"s,ve" }} reported in the current period <br/>
+
+		<a href="/rutf/health_posts?hp_filter=late"><strong>{{healthpost_not_reported}}</strong> health post{{ healthpost_not_reported|pluralize }}</a> ha{{ healthpost_not_reported|pluralize:"s,ve" }} <b>not</b> reported in the current period
+		
+		</p>
+		
+	</div>	
+
+
+</div>
+
+
+<div class="module">
+
+	<div>
+				
+			{% if not_confirmed_by_woreda > 0 or not_confirmed_by_zone > 0 or not_confirmed_by_region > 0 %}
+			<h3> Unconfirmed Reports </h3>
+			<p>
+			
+				{% if not_confirmed_by_woreda > 0 %} <b> {{not_confirmed_by_woreda}} </b> Report{{not_confirmed_by_woreda|pluralize}} under woreda  <br> {% endif %}
+				{% if not_confirmed_by_zone > 0 %} <b> {{not_confirmed_by_zone}} </b> Report{{not_confirmed_by_zone|pluralize}} under Zone  <br> {% endif %}
+				{% if not_confirmed_by_region > 0 %} <b> {{not_confirmed_by_region}} </b> Report{{not_confirmed_by_region|pluralize}} under Region   <br> {% endif %}
+			</p>
+			{% endif %}
+			
+		</div>	
+
+
+</div>
+
+<p>
+<p>
+
+
+
+
+<!-- Notifications -->
+
+<div>
+    <div style="padding:5px;"> 
+
+
+		<div class="notifications module">
+		<table width="100%">
+
+			<h3>Alert Messages </h3><br>
+			<thead>
+				<tr>
+					<th scope="column">Reporter</th>
+					<th scope="column">Alert Message</th>
+				</tr>
+			</thead>
+			{% if notifications %}
+			<tbody>
+			{% for n in notifications.object_list %}
+				<tr>
+					<td class="monitor"><a href="/rutf/reporter/{{ n.rutf_reporter.pk }}/">{{ n.rutf_reporter }}</a></td>
+					<td class="msg">{{ n.notice }}  <br> <span id="reply-reporter-{{n.pk }}" class="normal"> Reply </span></td>
+				</tr>
+			{% endfor %}
+			</tbody>
+			<tfoot>
+				<tr>
+					<td colspan="2" style="text-align:right;">
+					<span class="step-links">
+						<span class="current">
+							Page {{ notifications.number }} of {{ notifications.paginator.num_pages }}
+						</span>
+						
+						<span class="previous">
+							{% if notifications.has_previous %}
+								<a href="?page={{ notifications.previous_page_number }}"> previous </a>
+							
+							{% endif %}
+						</span>
+						
+						<span class="next">					
+							{% if notifications.has_next %}
+		    						<a href="?page={{ notifications.next_page_number }}">next</a>
+	       						{% endif %}
+       						</span>
+       					</span>
+
+
+					</td>
+				</tr>
+			</tfoot>
+			{% endif %}
+		</table>
+		</div>
+	
+        
+    </div>
+
+
+
+
+
+
+
+</div>
+
+{% endblock %}
+
+
+
+{% block right %}
+
+<div>
+    <div style="padding:5px;"> 
 	
 	<!-- Current period Entries -->
-      	        
-        <table>
-	<h3>Current Period Entries</h3><br>
+	<div class="entries module">
+	<h3>Current Period Entries</h3><br> 
+		{{confirmed_entries_num}}/{{entries_num}} report(s) confirmed. 
+		{% ifnotequal confirmed_entries_num entries_num %}
+			<a href = "/admin/rutfet/entry/"> Confirm Reports</a>
+		{% endifnotequal %}
+	<p>
+        <table width="100%">
 	<thead>
 		<tr>
 			<th scope="column">Location</th>
@@ -43,10 +249,11 @@
 			<th scope="column" class="tip" title="Current Stock Balance">Bal</th>
 		</tr>
 	</thead>
+	{% for entry in entries.object_list %}
 	<tbody>
-	{% for entry in entries %}
+	
 		<tr>
-			<th scope="row"><span title="{{ entry.supply_place.type }}">{{ entry.supply_place.place }}</span></td>
+			<th scope="row"><span title="{{ entry.supply_place.type }}"><a href="/rutf/health_post/{{ entry.supply_place.location.id }}/">		{{ entry.supply_place.place }}</a></span></td>
 			<td>{{ entry.supply_place.place.code }}</td>
 			<td>{{ entry.quantity }}</td>
 			<td>{{ entry.consumption }}</td>
@@ -54,195 +261,37 @@
 		</tr>
 	{% endfor %}
 	</tbody>
-	</table>
-        
-</div>
-
-{% endblock %}
-
-
-{% block right %}
-<div class="module">
-
-
-	
-
-
-<!-- Notifications -->
-
-<div class="box" style="width:400px;float:left;">
-    <div style="padding:5px;"> 
-       				<p> </p>
-       	{% if notifications %}
-		<div class="notifications module">
-		<table>
-
-			<h3>Unresolved Notification</h3><br>
-			<thead>
+	<tfoot>
 				<tr>
-					<th scope="column">Reporter</th>
-					<th scope="column">Alert Message</th>
-				</tr>
-			</thead>
-			<tbody>
-			{% for n in notifications %}
-				<tr>
-					<td class="monitor"><a href="/rutf_reporter/{{ n.rutf_reporter.pk }}/">{{ n.rutf_reporter }}</a></td>
-					<td class="msg"><a href="/notification/{{ n.pk }}/">{{ n.notice }}</a></td>
-				</tr>
-			{% endfor %}
-			</tbody>
-		</table>
-		</div>
-	{% endif %}
-        
-    </div>
-</div>
-
-
-
-<!-- Send Message-->
-
-<div class="box" style="width:400px;float:left;">
-    <div style="padding:5px;"> 
-       	
-       	<div class="send module">
-	<form action="/send_sms/" method="POST">
-		<fieldset>
-						
-			<table>
-				<h3>Send a Message to RUTF Reporter(s)</h3><br>
+					<td colspan="5" style="text-align:right;">
+					<span class="step-links">
 					
-				<tbody>
-					<tr>
-						<td class="form" id="send-form">
-							<div class="textarea"><div>
-								<textarea name="message"></textarea>
-							</div></div>
-	
-							<input type="submit" id="fm-send-submit" value="Send" />
-						</td>
-						<td>
-							<div class="recipients" id="send-recipients">
-								{% for reporter in reporters %}
-								<div>
-									<input type="checkbox" value="{{ reporter.pk }}" id="fm-monitor-{{ reporter.pk }}" name="monitor-{{ reporter.pk }}" />
-									<label for="fm-monitor-{{ reporter.pk }}">{{ reporter }}</label>
-								</div>
-								{% endfor %}
-							</div>
-							
-							<script type="text/javascript">
-								(function() {
-									/* set the 'checked' status of all reporters
-									 * at once, because there are a lot of them */
-									var select_all = function (state) {
-										$$("#send-recipients input").each (function(el) {
-											el.checked = state;
-										});
-									};
-									
-									/* element to hold all/none buttons */
-									var container = $("send-recipients");
-									var txta = $$("#send-form textarea")[0];
-									
-									/* ...and the SELECT NONE button */
-									new Element ("span", {
-										"html": "Select All",
-										"class": "sel-all",
-										"title": "Select all reporters",
-										"events": {
-											"click": function (ev) {
-												select_all (true);
-												txta.focus();
-										}}
-									}).inject (container, "before");
-									
-									/* create the SELECT ALL button */
-									new Element ("span", {
-										"html": "Select None",
-										"class": "sel-none",
-										"title": "Select no reporters",
-										"events": {
-											"click": function (ev) {
-												select_all (false);
-												txta.focus();
-										}}
-									}).inject (container, "before");
-									
-									
-									/* keep track of the last monitor
-									 * link that was clicked, so double-
-									 * clicked links can behave normally */
-									var last_link = null;
-									
-									/* watch all clicks for clicks on reporters */
-									$(document.body).addEvent ("click", function(ev) {
-										var url = "/inventory/monitor/";
-										var el = $(ev.target);
-										
-										if (el.get ("tag") == "a") {
-											if (el.get ("href").slice (0, 19) == url) {
-												
-												/* if this link has already been clicked,
-												 * then abort, and follow the link */
-												if (last_link == el)
-													return true;
-												
-												/* otherwise, this is the first click,
-												 * but note this link for next time */
-												el.set ("title", "Click again to follow link");
-												last_link = el;	
-												
-												/* attempt to find a matching monitor checkbox */
-												var pk = parseInt(el.get ("href").slice(19, -1));
-												var check = $("fm-monitor-" + pk);
-												if (check) {
-												
-													/* unselect all, except for the
-													 * monitor that we just clicked on */
-													select_all (false);
-													check.checked = true;
-													
-													/* scroll the monitor into view (in
-													 * the little recipients window), and
-													 * briefly flash the background */
-													var div = check.getParent();
-													var pos = div.getPosition (container);
-													container.scrollTo (0, pos.y);
-													div.highlight();
-													
-													/* put the caret into the message
-													 * textarea, so we can click, type,
-													 * hit return to send messages */
-													txta.focus();
-													
-													/* cancel the usual event */	
-													ev.stop();
-												}
-											}
-										}
-									});
-									
-									/* auto-size the text area to fill the white-space
-									 * below it (the recipients list is always higher) */
-									$(document).addEvent ("domready", function (ev) {
-										var cell_h = $("send-form").getSize().y;
-										var but_h  = $("fm-send-submit").getSize().y;
-										var rest   = 25; // sum of the padding, margins
-										                 // and borders in the cell
-										txta.setStyle("height", cell_h - but_h - rest);
-									});
-								})(); // module
-							</script>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-		</fieldset>
-	</form>
-</div>
+						<span class="current">
+						Page {{ entries.number }} of {{ entries.paginator.num_pages }}
+						</span>
+						
+						<span class="previous">
+						{% if entries.has_previous %}
+							<a href="?page={{ entries.previous_page_number }}"> previous </a>
+						{% endif %}
+						</span>
+						
+						<span class="next">
+						
+						{% if entries.has_next %}
+            						<a href="?page={{ entries.next_page_number }}">next</a>
+       						{% endif %}
+       						</span>
+       					</span>
+
+
+					</td>
+				</tr>
+			</tfoot>
+	</table>
+	</div>
         
-    </div>
 </div>
+
+
 {% endblock %} 

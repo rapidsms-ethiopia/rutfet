@@ -1,0 +1,247 @@
+{% extends "rutf/layout_local.html" %}
+{% block title %} Send SMS Message {% endblock %}
+
+
+{% block javascripts %}
+	{{ block.super }}
+
+    <script type="text/javascript" src="/static/rutfet/js/jquery.js"></script>
+    <script type="text/javascript" language="javascript" src="/static/rutfet/datatables/media/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" language="javascript" src="/static/rutfet/datatables/extras/TableTools/media/ZeroClipboard/ZeroClipboard.js"></script>
+    <script type="text/javascript" language="javascript" src="/static/rutfet/datatables/extras/TableTools/media/js/TableTools.js"></script>
+
+    
+    <script type="text/javascript" charset="utf-8">
+        var oTable;
+        var giRedraw = false;
+
+        var TableToolsInit = {
+	        "oFeatures": {
+		        "bCsv": false,
+		        "bXls": false,
+		        "bCopy": false,
+		        "bPrint": false
+	        },
+	        "bIncHiddenColumns": false,
+	        "sPrintMessage": "",
+	        "sTitle": "",
+	        "iButtonHeight": 30,
+	        "iButtonWidth": 30,
+	        "_iNextId": 1 /* Internal useage - but needs to be global */
+        };    
+        $(document).ready(function() {
+            /* Add a click handler to the rows - this could be used as a callback */
+            $("#report tbody").click(function(event) {
+                $(oTable.fnSettings().aoData).each(function (){
+                    $(this.nTr).removeClass('row_selected');
+                });
+                $(event.target.parentNode).addClass('row_selected');
+            });
+
+            /* Init the table */
+            oTable = $('#report').dataTable( {
+                "sDom": 'T<"clear">lfrtip',
+                "iDisplayLength": 10,
+                "aoColumns": [ {{aocolumns_js|safe}} ]
+            });
+            
+            
+            /* code to select/deselect all reporters */
+            
+               $("#select_all_reporter").click(function() {
+					
+			if($(this).is(':checked'))
+			{
+				$(":checkbox").attr('checked', 'checked');
+			}
+			else
+			{
+				$(":checkbox").attr('checked', '');
+			}
+			
+		
+		});
+		
+		
+		$("#send_sms_form").submit(function() {
+		
+			//alert("you click me!");
+			var text_message = jQuery.trim($("#text_message_box").val());
+			var reporter_selected = $(":checkbox").is(':checked');
+					
+			if(text_message == "")
+			{
+				alert("Please type text message in the Message box.");
+				return false;
+			}
+			else if(reporter_selected == false)
+			{
+				alert("Please select reporters.");
+				return false;
+			}
+								
+		
+		});
+
+        } );
+
+        /* Get the rows which are currently selected */
+        function fnGetSelected( oTableLocal )
+        {
+            var aReturn = new Array();
+            var aTrs = oTableLocal.fnGetNodes();
+            
+            for ( var i=0 ; i<aTrs.length ; i++ )
+            {
+                if ( $(aTrs[i]).hasClass('row_selected') )
+                {
+                    aReturn.push( aTrs[i] );
+                }
+            }
+            return aReturn;
+        }
+        
+        
+        
+        
+     
+    </script>
+{% endblock %}
+
+{% block stylesheets %}
+{{ block.super }}
+<link type="text/css" rel="stylesheet" href="/static/rutfet/datatables/media/css/datatable.css" />
+<link type="text/css" rel="stylesheet" href="/static/rutfet/datatables/extras/TableTools/media/css/TableTools.css" />
+<style>
+#form1 {
+	float:left;
+}
+.row {
+	position:relative;
+	display:block;
+	clear:both;
+}
+.label{
+	position:relative;
+	display:inline-block;
+
+	clear:left;
+	padding:5px;
+	text-align:right;
+}
+.field{
+	position:relative;
+	display:inline;
+	clear:right;
+}
+ 
+</style>
+
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<h3>Send a Message to RUTF Reporter(s)</h3>
+       	
+<div class="send module">
+	<!-- Show confirmation if message is sent -->
+	{% if reporter_received or reporter_not_received %}
+		<div> 
+			Message is sent to {{success}} reporter(s).
+			
+			{% if reporter_not_received %}
+				But can not be sent to {{failure}} reporters. 
+			{% endif %}
+		</div>
+	{% endif %}
+	
+	       	
+	<form id="send_sms_form" action="/rutf/send_sms/" method="POST">
+		
+		<div class="row">
+			<!--
+    			<div class="label">Phone Number:</div>
+        		<div class="field"><input type="text" name="phone_number_list" />
+				 <small>(list of phone numbers separated by semi-colon)</small>
+        		</div>
+        		-->
+    		</div>
+   		
+   		
+		<div class="row">
+			<div class="label">Message:</div>
+		</div>
+		
+    		<div class="row">
+    			
+       			 <div class="field"><textarea cols="60" rows="5" name="text_message" id="text_message_box">{% if not_received %}{{sms_text}}{% endif %}</textarea></div>
+    		</div>
+    		
+    		<div class="row"><input id="send_button" type="submit" name="submit" value="Send SMS" /></div>
+
+ 
+
+						
+
+
+	<!-- Reporters list -->
+	{% if not_received %}
+		<h3> The following reporters don't receive the text message. </h3>
+	{% endif %}
+
+	<table  cellpadding="0" cellspacing="0" border="0" id="report" class="display"> 
+	    <thead>
+	    <tr>
+	    <!-- Check box -->
+			<td> 
+				<input type="checkbox" name="select_all" value="select_all" id="select_all_reporter">
+			</td>
+	    {% for column in columns %}
+		    {% if sub_columns %}
+			{% if column.colspan %}
+			    <th colspan="{{column.colspan}}" class="spanned"{% ifequal columns|length 15%} style="font-size:8px"{% endifequal %}>{{column.name}}</th>
+			{% else %}
+			    <th rowspan="2">{{column.name}}</th>
+			{% endif %}
+		    {% else %}
+			<th>{{column.name}}</th>
+		    {% endif %}
+	    {% endfor %}
+	    </tr>
+	    {% if sub_columns %}
+	    <tr>
+		{% for column in sub_columns %}
+		    <th>{{column.name}}</th>
+		{% endfor %}
+	    </tr>
+	    {% endif %}
+	    
+	    </thead>
+	    <tbody> 
+		{% for row in rows %}
+		    <tr{% if not row.complete %} class="inc"{%endif%}>
+		    <!-- Check box -->
+			<td id="reporter_selector"> 
+				<input type="checkbox" name= "reporter-id-{{row.reporter_id}}" value="reporter-id-{{ row.reporter_id }}" id="reporter">
+			</td>
+		    
+		    {% for cell in row.cells %}
+		    		    	
+			    <td{% if cell.num %} class="num"{% endif %}{% if forloop.first %} style="white-space:nowrap;"{% endif %}>
+			    	{% if cell.link %}<a href="{{cell.link}}">{% endif %}{{cell.value|default_if_none:""}}{% if cell.link %}</a>{% endif %}
+			    </td>
+		    {% endfor %}
+		    </tr>
+		{% endfor %}
+	    </tbody>
+
+	</table>
+
+</form>
+</div>
+
+{% endblock %}
+

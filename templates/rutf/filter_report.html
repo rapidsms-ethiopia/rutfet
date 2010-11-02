@@ -1,0 +1,183 @@
+{% extends "rutf/layout_local.html" %}
+
+
+{% block title %} RUTF Reports {% endblock %}
+
+
+{% block stylesheets %}
+{{ block.super }}		
+	<link rel="stylesheet" href="/static/rutfet/stylesheets/report_filter.css" />
+{% endblock %}
+
+
+{% block javascripts %}
+{{ block.super }}
+<script type="text/javascript" src="/static/rutfet/js/jquery.js"></script>
+<script type="text/javascript" src="/static/rutfet/js/filter_report.js"></script>
+<script type="text/javascript">
+
+	$(document).ready(function() {
+		//Diplay place name based on the selected place type
+		$("#filter-form-placetype").bind("change", function(e) {
+			var location_type = e.target.value;
+			// Remove all the options
+			$("#filter-form-placename > option").remove();
+			$("#filter-form-placename").append('<option value="" selected="selected">----------</option>');
+		
+			
+			{% for descendent_location in descendent_locations %}
+				if("{{descendent_location.type.name}}" == location_type)
+				{
+					$("#filter-form-placename").append('<option value ="{{descendent_location.name}}"> {{descendent_location.name}} </option>');
+				
+				}
+						
+		
+			{% endfor %}
+		
+					
+			
+						
+		
+	
+		});
+		
+	});
+
+	
+</script>
+
+{% endblock %}
+
+
+
+{% block bodyclass %}reports{% endblock %}
+
+{% block content %}
+
+
+<div class="filter-form-module">
+	<form action="../../rutf/reports/" method="GET" {% csrf_token %}>
+	<table>
+		<thead id="theader">
+		
+			<tr id="filter-model">
+				<td colspan="2">
+										
+					Report On:
+				</td>
+				<td colspan="2">
+					<select id="filter-form-model" name="model">
+						<option value="" selected="selected">----------</option>
+					{% for model in models %}
+						{% if model.name == model_name %}
+							<option value="{{ model.name }}" selected="selected">{{ model.caption }}</option>
+						{% else %}
+							<option value="{{ model.name }}">{{ model.caption }}</option>
+						{% endif %}
+	
+					{% endfor %}
+					</select>
+				</td>
+			</tr>
+			<tr id="filter-place_type">
+				<td colspan="2">
+										
+					Location Type:
+				</td>
+				
+				<td colspan="2">
+					<select id="filter-form-placetype" name="placetype">
+						<option value="" selected="selected">----------</option>
+					{% for location_type in location_types %}
+						<option value="{{location_type}}">{{location_type}}</option>
+					{% endfor %}
+					</select>
+				</td>
+								
+			</tr>
+			
+			<tr id="filter-place_name">
+							
+				<td  colspan="2">
+					
+					Location Name:
+				</td>
+				<td  colspan="2">
+					<select id="filter-form-placename" name="placename">
+						<option value="" selected="selected">----------</option>
+					
+					</select>
+				</td>
+			</tr>
+			
+			<tr id="filter-period_start">
+				<td colspan="2">
+										
+					Beginning Month:
+				</td>
+				
+				<td>
+					<select id="filter-form-startdate" name="startmonth_id">
+						<option value="" selected="selected">----------</option>
+					{% for period in periods %}
+						<option value="{{period.id}}">{{period.month}} - {{period.year}}</option>
+					{% endfor %}
+					</select>
+				</td>
+				
+											
+			</tr>
+			
+			<tr id="filter-period_end">
+								
+				<td colspan = 2>
+					
+					Ending Month: 
+				</td>
+				
+				<td>
+					<select id="filter-form-enddate" name="endmonth_id">
+						<option value="" selected="selected">----------</option>
+					{% for period in periods %}
+						<option value="{{period.id}}">{{period.month}} - {{period.year}}</option>
+					{% endfor %}	
+					</select>
+				</td>
+				
+				
+			</tr>
+			
+			<tr id="filter-groupby">
+				<td colspan="2">
+										
+					Group By:
+				</td>
+				
+				<td colspan="2">
+					<select id="filter-form-groupby" name="groupby">
+						<option value="" selected="selected">----------</option>
+					{% for location_type in location_types %}
+						<option value="{{location_type}}">{{location_type}}</option>
+					{% endfor %}
+					</select>
+				</td>
+			</tr>
+			
+		</thead>
+		
+		
+		<tfoot id="filter-foot">
+			<tr>
+				<td colspan ="4" id="filter-button">
+					<input type="submit" class="filter-button" value="Filter" />
+				</td>
+			</tr>
+			
+			
+		</tfoot>
+	</table>
+	</form>
+</div>
+
+{% endblock %} 

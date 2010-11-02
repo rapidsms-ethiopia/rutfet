@@ -13,14 +13,31 @@ class EntryTable(tables.Table):
     balance = tables.Column(verbose_name = 'balance')
     rutf_reporter = tables.Column(verbose_name = 'Reported By')
 
+
+class ReporterEntryTable(tables.Table):
+    #pk = tables.Column(visible=False, sortable=False)
+    period = tables.Column(verbose_name = 'Period')
+    quantity = tables.Column(verbose_name = 'Quantity Received')
+    consumption = tables.Column(verbose_name = 'Consumption')
+    balance = tables.Column(verbose_name = 'balance')
+
+
+class HealthPostEntryTable(tables.Table):
+    #pk = tables.Column(visible=False, sortable=False)
+    period = tables.Column(verbose_name = 'Period')
+    quantity = tables.Column(verbose_name = 'Quantity Received')
+    consumption = tables.Column(verbose_name = 'Consumption')
+    balance = tables.Column(verbose_name = 'balance')
+    rutf_reporter = tables.Column(verbose_name = 'Reported By')
+
     
 
 class AlertTable(tables.Table):
     #pk = tables.Column(visible=False, sortable=False)
     notice = tables.Column(verbose_name = u"Alert Message")
-    resolved = tables.Column(verbose_name = u"Is Resolved")
-    time = tables.Column(verbose_name = u"Time")
-    rutf_reporter = tables.Column(verbose_name = u"Reported By")
+    time = tables.Column(verbose_name = u"Time Sent")
+    resolved = tables.Column(verbose_name = u"Resolved")
+    #rutf_reporter = tables.Column(verbose_name = u"Reported By")
     
         
     
@@ -31,19 +48,25 @@ class SupplyTable(tables.Table):
     unit = tables.Column(verbose_name = u"Measurment Unit")
 
 class RUTFReporterTable(tables.Table):
-    #pk = tables.Column(visible=False, sortable=False)
+    reporter_id = tables.Column(verbose_name = "Reporter ID", visible=False)
+    alias = tables.Column(verbose_name = "Username")
     first_name = tables.Column(verbose_name = "Name")
-    last_name = tables.Column(verbose_name = "Father Name")
-    phone = tables.Column(verbose_name = "Phone Number")
+    last_name = tables.Column(verbose_name = "Father Name", visible= False)
     location = tables.Column(verbose_name = "Location")
+    phone = tables.Column(verbose_name = "Phone Number")
+
     
 class HealthPostTable(tables.Table):
-    #pk = tables.Column(visible=False, sortable=False)
+    healthpost_id = tables.Column(verbose_name = 'Healthpost ID', visible=False)
     name = tables.Column(verbose_name = 'Name')
-    code = tables.Column(verbose_name = 'Location Code')
-    type = tables.Column(verbose_name = 'Type')
-    child_number = tables.Column(verbose_name= 'Number of Child Location')
-    parent_name = tables.Column(verbose_name = 'Parent Location')
+    code = tables.Column(verbose_name = 'Location Code', visible= False)
+    #type = tables.Column(verbose_name = 'Type')
+    woreda = tables.Column(verbose_name= 'Woreda')
+    zone = tables.Column(verbose_name = 'Zone')
+    reporter = tables.Column(verbose_name = "Reporter(s)")
+
+    class Meta:
+        per_page = 4
 
 
 class WebUserTable(tables.Table):

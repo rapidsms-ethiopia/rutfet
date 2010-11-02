@@ -1,20 +1,110 @@
-{% extends "layout.html" %}
+{% extends "rutf/layout_local.html" %}
 
-{% load includes %}
+
 {% block title %} Charts {% endblock %}
+
+
 
 {% block page_stylesheets %}
 	<link rel="stylesheet" href="/static/rutfet/stylesheets/dashboard.css" />
 {% endblock page_stylesheets %}
 
 {% block javascripts %}
-<script type="text/javascript" src="/assets/js/mootools-1.2-core-yc.js"></script>
+{{ block.super }}
+<script type="text/javascript" src="/static/rutfet/js/jquery.js"></script>
+<script type="text/javascript" src="/static/rutfet/js/filter_report.js"></script>
+<script type="text/javascript">
+
+	$(document).ready(function() {
+		//Diplay place name based on the selected place type
+		$("#location_type").bind("change", function(e) {
+			var location_type = e.target.value;
+			// Remove all the options
+			$("#location_name > option").remove();
+			$("#location_name").append('<option value="" selected="selected">----------</option>');
+		
+			
+			{% for descendent_location in descendent_locations %}
+				if("{{descendent_location.type.name}}" == location_type)
+				{
+					$("#location_name").append('<option value ="{{descendent_location.name}}"> {{descendent_location.name}} </option>');
+				
+				}
+						
+		
+			{% endfor %}
+		
+					
+			
+						
+		
+	
+		});
+	});
+
+	
+</script>
 
 {% endblock %}
 
 
 {% block content %}
 <h2> Charts </h2>
+
+<form method="POST" action = "">
+	<table>
+	<tr>
+	
+		<td>
+		Location Type:
+		<select name = "location_type" id="location_type">
+		<option value="" selected="selected">----------</option>
+		{% for location_type in location_types %}
+			<option value ="{{location_type}}">{{location_type}}</option>
+		{% endfor %}
+		</td>
+		
+		<td>
+		Location Name:
+		<select name = "location_name" id="location_name">
+			<option value="" selected="selected">----------</option>
+		</select>
+		</td>
+	</tr>
+	
+	<tr id="filter-period_start">
+							
+		<td>
+			Beginning Month:
+			<select id="filter-form-startdate" name="startmonth_id">
+				<option value="" selected="selected">----------</option>
+			{% for period in periods %}
+				<option value="{{period.id}}">{{period.month}} - {{period.year}}</option>
+			{% endfor %}
+			</select>
+		</td>
+				
+		<td>
+		Ending Month: 
+			<select id="filter-form-enddate" name="endmonth_id">
+				<option value="" selected="selected">----------</option>
+			{% for period in periods %}
+				<option value="{{period.id}}">{{period.month}} - {{period.year}}</option>
+			{% endfor %}	
+			</select>
+		</td>
+		
+		<td rowspan = "2">
+			<input type="submit" class="filter-button" value="Filter" />
+		</td>	
+	</tr>
+	
+</table>
+	
+</form>
+<strong>Location: <strong> {{location}} </br>
+
+<img alt="chart 1" src="{{chart_src_path}}">
 
 
 {% endblock content%}
